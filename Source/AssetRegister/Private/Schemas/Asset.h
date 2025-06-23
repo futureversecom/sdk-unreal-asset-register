@@ -1,6 +1,19 @@
 #pragma once
+#include "Asset.generated.h"
 
-USTRUCT(BlueprintType)
+USTRUCT()
+struct FRawAttributes
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere)
+	FString Value;
+	
+	UPROPERTY(EditAnywhere)
+	FString TraitType;
+};
+
+USTRUCT()
 struct FAssetMetadata
 {
 	GENERATED_BODY()
@@ -12,13 +25,13 @@ struct FAssetMetadata
 	FString Uri;
 	
 	UPROPERTY(EditAnywhere, meta=(QueryName = "attributes"))
-	TMap<FString, FString> Attributes;
+	TArray<FString> Attributes;
 	
 	UPROPERTY(EditAnywhere, meta=(QueryName = "rawAttributes"))
-	TMap<FString, FString> RawAttributes;
+	TArray<FRawAttributes> RawAttributes;
 };
 
-USTRUCT(BlueprintType, meta=(QueryName = "asset"))
+USTRUCT(meta=(QueryName = "asset"))
 struct FAsset
 {
 	GENERATED_BODY()
@@ -31,6 +44,9 @@ struct FAsset
 	
 	UPROPERTY(EditAnywhere, meta=(QueryName = "tokenId"))
 	FString TokenId;
+
+	UPROPERTY(EditAnywhere, meta=(QueryName = "profiles"))
+	TMap<FString, FString> Profiles;
 	
 	UPROPERTY(EditAnywhere, meta=(QueryName = "metadata"))
 	FAssetMetadata Metadata;

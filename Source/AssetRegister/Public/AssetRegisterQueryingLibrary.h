@@ -21,7 +21,7 @@ public:
 	static void GetAssetProfile(const FString& TokenId, const FString& CollectionId, const FGetJsonCompleted& OnCompleted);
 	
 	UFUNCTION(BlueprintCallable)
-	static void GetAsset(const FString& TokenId, const FString& CollectionId, const FGetJsonCompleted& OnCompleted);
+	static void GetAssets(const TArray<FString>& Addresses, const TArray<FString>& Collections, const FGetJsonCompleted& OnCompleted);
 	
-	static TFuture<FString> GetAssetProfileJson(const FString& TokenId, const FString& CollectionId);
+	static TFuture<FString> SendRequest(const FString& URL, const FString& Content);
 };

@@ -25,7 +25,7 @@ public class AssetRegister : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core", "HTTP",
+				"Core", "HTTP", "Json", "JsonUtilities", "DeveloperSettings"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

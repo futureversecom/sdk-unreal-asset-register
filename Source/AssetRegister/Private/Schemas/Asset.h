@@ -2,6 +2,12 @@
 #include "Asset.generated.h"
 
 USTRUCT()
+struct FAssetLink
+{
+	GENERATED_BODY()
+};
+
+USTRUCT()
 struct FRawAttributes
 {
 	GENERATED_BODY()
@@ -10,7 +16,7 @@ struct FRawAttributes
 	FString Value;
 	
 	UPROPERTY(EditAnywhere)
-	FString TraitType;
+	FString Trait_type;
 };
 
 USTRUCT()
@@ -45,6 +51,9 @@ struct FAsset
 	UPROPERTY(EditAnywhere, meta=(QueryName = "tokenId"))
 	FString TokenId;
 
+	UPROPERTY(EditAnywhere, meta=(QueryName = "links"))
+	FAssetLink Links;
+	
 	UPROPERTY(EditAnywhere, meta=(QueryName = "profiles"))
 	TMap<FString, FString> Profiles;
 	

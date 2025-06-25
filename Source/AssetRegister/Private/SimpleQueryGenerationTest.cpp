@@ -1,12 +1,13 @@
 #include "AssetRegisterQueryingLibrary.h"
-#include "QueryRegistry.h"
+#include "QueryBuilder.h"
 #include "Misc/AutomationTest.h"
 #include "Schemas/Asset.h"
+#include "Schemas/AssetLink.h"
 #include "Schemas/Inputs/AssetInput.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(SimpleQueryGenerationTest,
-								"UBFEmergenceDemo.sdk_unreal_asset_register.Source.AssetRegister.Private.SimpleQueryGenerationTest",
-								EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+	"UBFEmergenceDemo.sdk_unreal_asset_register.Source.AssetRegister.Private.SimpleQueryGenerationTest",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 FString RemoveAllWhitespace(const FString& Input)
 {
@@ -25,23 +26,25 @@ FString RemoveAllWhitespace(const FString& Input)
 
 bool SimpleQueryGenerationTest::RunTest(const FString& Parameters)
 {
-	TSharedPtr<FQueryRegistry<FAsset>> QueryRegistry = MakeShareable(new FQueryRegistry<FAsset>());
-	
-	TestEqual(TEXT("Model Name should match with type of QueryRegistry"), QueryRegistry->GetModelString(),
-		TEXT("asset"));
-	
-	const auto Argument = FAssetInput(TEXT("400"), TEXT("7672:root:303204"));
-	QueryRegistry->RegisterArgument(Argument);
-	QueryRegistry->RegisterArgument("float", 0);
+	//TSharedPtr<FQuery<FAsset>> Query = MakeShareable(new FQuery<FAsset>());
+	TSharedPtr<FQueryBuilder<FAsset>> Query = MakeShareable(FQueryBuilder<FAsset>::Create());
 
-	TestEqual(TEXT("Arguments should be split up by ,"), QueryRegistry->GetArgumentsString(),
-		TEXT("tokenId:\"400\",collectionId:\"7672:root:303204\",float:0"));
+	TestEqual(TEXT("Model Name should match with type of QueryRegistry"), Query->GetModelString(),
+		TEXT("asset"));
+
+	const auto TokenId = TEXT("400");
+	const auto CollectionId = TEXT("7672:root:303204");
+	const auto Argument = FAssetInput(TokenId, CollectionId);
+	Query->AddArgument(Argument);
+
+	TestEqual(TEXT("Arguments should be split up by ,"), Query->GetArgumentsString(),
+		TEXT("tokenId:\"400\",collectionId:\"7672:root:303204\""));
 	
-	auto Asset = FAsset();
-	Asset.Id = TEXT("123");
-	Asset.Profiles.Add(TEXT("123"), TEXT("123"));
-	Asset.Metadata.RawAttributes = TArray{FRawAttributes()};
-	QueryRegistry->RegisterField(Asset);
+	Query->AddField(&FAsset::Id);
+	Query->AddField(&FAsset::Profiles);
+	Query->OnMember(&FAsset::Metadata).AddField(&FAssetMetadata::RawAttributes);
+	Query->OnUnion<FNFTAssetLink>(&FAsset::Links).AddField(&FNFTAssetLink::ChildLinks);
+	
 	FString ExpectedFieldString = R"(
 	{
 	  id
@@ -50,13 +53,12 @@ bool SimpleQueryGenerationTest::RunTest(const FString& Parameters)
 	    rawAttributes
 	}
 	})";
-	UE_LOG(LogTemp, Log, TEXT("Actual FieldString: %s"), *RemoveAllWhitespace(QueryRegistry->GetFieldString()));
-	UE_LOG(LogTemp, Log, TEXT("Expected FieldString: %s"), *RemoveAllWhitespace(ExpectedFieldString));
-	TestEqual(TEXT("Fields should only display if set"), RemoveAllWhitespace(QueryRegistry->GetFieldString()), RemoveAllWhitespace(ExpectedFieldString));
+	UE_LOG(LogTemp, Log, TEXT("Actual FieldString: %s"), *Query->GetFieldString());
+	TestEqual(TEXT("Fields should only display if set"), RemoveAllWhitespace(Query->GetFieldString()), RemoveAllWhitespace(ExpectedFieldString));
 	
 	FString ExpectedQueryString = R"(
 	query {
-	  asset(tokenId: "400", collectionId: "7672:root:303204", float:0)
+	  asset(tokenId: "400", collectionId: "7672:root:303204")
 		{
 		  id
 		  profiles
@@ -66,31 +68,35 @@ bool SimpleQueryGenerationTest::RunTest(const FString& Parameters)
 		}
 	})";
 	
-	UE_LOG(LogTemp, Log, TEXT("Actual QueryString: %s"), *RemoveAllWhitespace(QueryRegistry->GetQueryString()));
+	UE_LOG(LogTemp, Log, TEXT("Actual QueryString: %s"), *RemoveAllWhitespace(Query->GetQueryString()));
 	UE_LOG(LogTemp, Log, TEXT("Expected QueryString %s"), *RemoveAllWhitespace(ExpectedQueryString));
 	
-	TestEqual(TEXT("Full query string should include everything"), RemoveAllWhitespace(QueryRegistry->GetQueryString()), RemoveAllWhitespace(ExpectedQueryString));
+	TestEqual(TEXT("Full query string should include everything"), RemoveAllWhitespace(Query->GetQueryString()), RemoveAllWhitespace(ExpectedQueryString));
 	
-	UAssetRegisterQueryingLibrary::SendRequest(TEXT("https://ar-api.futureverse.cloud/graphql"), QueryRegistry->GetQueryString()).Next([]
+	bool bHttpRequestCompleted = false;
+	UAssetRegisterQueryingLibrary::SendRequest(TEXT("https://ar-api.futureverse.cloud/graphql"), ExpectedQueryString).Next(
+		[this, Query, &bHttpRequestCompleted](const FString& OutJson)
 	{
+		FAsset OutAsset;
+		if (QueryStringUtil::TryGetModel(OutJson, OutAsset))
+		{
+			TestEqual(TEXT("Parsed Asset should contain asset-profile key in profiles map"),
+		OutAsset.Profiles.Contains(TEXT("asset-profile")), true);
 			
-	});
-	
-	FString TestAssetResponse = R"(
-	{
-		"data": {
-			"asset": {
-				"profiles": {
-					"asset-profile": "https://fv-ubf-assets-dev.s3.us-west-2.amazonaws.com/Genesis/Profiles/303204/profile.json"
-				  }
+			UE_LOG(LogTemp, Log, TEXT("Parsed AssetProfile: %s"), *OutAsset.Profiles.FindOrAdd(TEXT("asset-profile")));
+			for (auto RawAttribute : OutAsset.Metadata.RawAttributes)
+			{
+				UE_LOG(LogTemp, Log, TEXT("Parsed Metadata.RawAttributes trait_type: %s value: %s"), *RawAttribute.Trait_type, *RawAttribute.Value);
 			}
 		}
-	})";
-	FAsset OutAsset;
-	QueryRegistry->TryGetModel(TestAssetResponse, OutAsset);
-	TestEqual(TEXT("Parsed Asset should contain asset-profile key in profiles map"),
-		OutAsset.Profiles.Contains(TEXT("asset-profile")), true);
+		bHttpRequestCompleted = true;
+	});
+
+	const double StartTime = FPlatformTime::Seconds();
+	while (!bHttpRequestCompleted && FPlatformTime::Seconds() - StartTime < 5.0)
+	{
+		FPlatformProcess::Sleep(0.01f); // Sleep to avoid freezing the main thread
+	}
 	
-	UE_LOG(LogTemp, Log, TEXT("Parsed AssetProfile: %s"), *OutAsset.Profiles.FindOrAdd(TEXT("asset-profile")));
 	return true;
 }

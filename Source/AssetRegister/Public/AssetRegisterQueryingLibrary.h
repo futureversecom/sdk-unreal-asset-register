@@ -19,6 +19,9 @@ class ASSETREGISTER_API UAssetRegisterQueryingLibrary : public UBlueprintFunctio
 public:
 	UFUNCTION(BlueprintCallable)
 	static void GetAssetProfile(const FString& TokenId, const FString& CollectionId, const FGetJsonCompleted& OnCompleted);
+
+	UFUNCTION(BlueprintCallable)
+	static void GetAssetLinks(const FString& TokenId, const FString& CollectionId, const FGetJsonCompleted& OnCompleted);
 	
 	UFUNCTION(BlueprintCallable)
 	static void GetAssets(const TArray<FString>& Addresses, const TArray<FString>& Collections, const FGetJsonCompleted& OnCompleted);

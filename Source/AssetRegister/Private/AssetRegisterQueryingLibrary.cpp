@@ -6,7 +6,7 @@
 #include "AssetRegisterLog.h"
 #include "AssetRegisterSettings.h"
 #include "HttpModule.h"
-#include "QueryRegistry.h"
+#include "QueryBuilder.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Schemas/Asset.h"
 #include "Schemas/Inputs/AssetInput.h"
@@ -14,13 +14,9 @@
 void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, const FString& CollectionId,
 	const FGetJsonCompleted& OnCompleted)
 {
-	TSharedPtr<FQueryRegistry<FAsset>> QueryRegistry = MakeShareable(new FQueryRegistry<FAsset>());
-	const auto Argument = FAssetInput(TokenId, CollectionId);
-	QueryRegistry->RegisterArgument(Argument);
-	
-	auto AssetProfileInput = FAsset();
-	AssetProfileInput.Profiles.Add(TEXT("1"), TEXT("1"));
-	QueryRegistry->RegisterField(AssetProfileInput);
+	TSharedPtr<FQueryBuilder<FAsset>> Query = MakeShareable(FQueryBuilder<FAsset>::Create());
+	Query->AddArgument(FAssetInput(TokenId, CollectionId));
+	Query->AddField(&FAsset::Profiles);
 	
 	FString URL;
 	const UAssetRegisterSettings* Settings = GetDefault<UAssetRegisterSettings>();
@@ -37,7 +33,7 @@ void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, cons
 		return;
 	}
 	
-	SendRequest(URL, QueryRegistry->GetQueryString()).Next([OnCompleted, TokenId, CollectionId, QueryRegistry](const FString& OutJson)
+	SendRequest(URL, Query->GetQueryString()).Next([OnCompleted, TokenId, CollectionId, Query](const FString& OutJson)
 	{
 		if (OutJson.IsEmpty())
 		{
@@ -47,7 +43,7 @@ void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, cons
 		}
 		
 		FAsset OutAsset;
-		if (QueryRegistry->TryGetModel(OutJson, OutAsset))
+		if (QueryStringUtil::TryGetModel(OutJson, OutAsset))
 		{
 			OnCompleted.ExecuteIfBound(OutAsset.Profiles.Contains(TEXT("asset-profile")),
 				OutAsset.Profiles.FindOrAdd(TEXT("asset-profile")));
@@ -58,16 +54,25 @@ void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, cons
 	});
 }
 
-void UAssetRegisterQueryingLibrary::GetAssets(const TArray<FString>& Addresses, const TArray<FString>& Collections,
+void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const FString& CollectionId,
 	const FGetJsonCompleted& OnCompleted)
 {
-	// TSharedPtr<FQueryRegistry<FAsset>> QueryBuilder = MakeShareable(new FQueryRegistry<FAsset>());
+	// TSharedPtr<FQuery<FAsset>> Query = MakeShareable(new FQuery<FAsset>());
+	// Query->AddArgument(FAssetInput(TokenId, CollectionId));
+	// Query->OnUnion<FNFTAssetLink>(&FAsset::Links)
+	// 	.AddField(&FNFTAssetLink::ChildLinks);
+}
+
+void UAssetRegisterQueryingLibrary::GetAssets(const TArray<FString>& Addresses, const TArray<FString>& Collections,
+											const FGetJsonCompleted& OnCompleted)
+{
+	//TSharedPtr<FQuery<FAsset>> QueryBuilder = MakeShareable(new FQuery<FAsset>());
 	// QueryBuilder->RegisterField<FAsset>(&FAsset::TokenId);
 	// QueryBuilder->RegisterField<FAsset>(&FAsset::CollectionId);
 	// QueryBuilder->RegisterField<FAsset>(&FAsset::Metadata, &FAssetMetadata::Id);
 }
 
-TFuture<FString> UAssetRegisterQueryingLibrary::SendRequest(const FString& URL, const FString& Content)
+TFuture<FString> UAssetRegisterQueryingLibrary::SendRequest(const FString& URL, const FString& RawContent)
 {
 	TSharedPtr<TPromise<FString>> Promise = MakeShareable(new TPromise<FString>());
 	TFuture<FString> Future = Promise->GetFuture();
@@ -77,6 +82,15 @@ TFuture<FString> UAssetRegisterQueryingLibrary::SendRequest(const FString& URL, 
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));
 	Request->SetHeader("content-type", "application/json");
+
+	TSharedRef<FJsonObject> JsonBody = MakeShared<FJsonObject>();
+	JsonBody->SetStringField("query", RawContent);
+
+	FString Content;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Content);
+	FJsonSerializer::Serialize(JsonBody, Writer);
+
+	UE_LOG(LogAssetRegister, Verbose, TEXT("UAssetRegisterQueryingLibrary::Sending Request. URL: %s Content: %s"), *URL, *Content);
 	Request->SetContentAsString(Content);
 	Request->SetTimeout(60);
 	

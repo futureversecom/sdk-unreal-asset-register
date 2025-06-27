@@ -9,31 +9,18 @@
 #include "QueryBuilder.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Schemas/Asset.h"
+#include "Schemas/AssetLink.h"
 #include "Schemas/Inputs/AssetInput.h"
 
 void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, const FString& CollectionId,
 	const FGetJsonCompleted& OnCompleted)
 {
-	TSharedPtr<FQueryBuilder<FAsset>> Query = MakeShareable(FQueryBuilder<FAsset>::Create());
-	Query->AddArgument(FAssetInput(TokenId, CollectionId));
-	Query->AddField(&FAsset::Profiles);
+	auto AssetQuery = FAssetRegister::AddAssetQuery(FAssetInput(TokenId, CollectionId));
+
+	AssetQuery->AddField(&FAsset::Id)
+		->AddField<FAsset>(&FAsset::Profiles);
 	
-	FString URL;
-	const UAssetRegisterSettings* Settings = GetDefault<UAssetRegisterSettings>();
-	check(Settings);
-	
-	if (Settings)
-	{
-		URL = Settings->ProfileURL;
-	}
-	else
-	{
-		UE_LOG(LogAssetRegister, Warning, TEXT("[UGetAssetProfile] UAssetRegisterSettings was null, returning empty string"));
-		OnCompleted.ExecuteIfBound(false, "");
-		return;
-	}
-	
-	SendRequest(URL, Query->GetQueryString()).Next([OnCompleted, TokenId, CollectionId, Query](const FString& OutJson)
+	SendRequest(AssetQuery->GetQueryString()).Next([OnCompleted, TokenId, CollectionId](const FString& OutJson)
 	{
 		if (OutJson.IsEmpty())
 		{
@@ -57,10 +44,34 @@ void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, cons
 void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const FString& CollectionId,
 	const FGetJsonCompleted& OnCompleted)
 {
-	// TSharedPtr<FQuery<FAsset>> Query = MakeShareable(new FQuery<FAsset>());
-	// Query->AddArgument(FAssetInput(TokenId, CollectionId));
-	// Query->OnUnion<FNFTAssetLink>(&FAsset::Links)
-	// 	.AddField(&FNFTAssetLink::ChildLinks);
+	auto AssetQuery = FAssetRegister::AddAssetQuery(FAssetInput(TokenId, CollectionId));
+	AssetQuery->OnMember(&FAsset::Links)
+	->OnUnion<FNFTAssetLink, FAssetLink>()
+		->OnArray(&FNFTAssetLink::ChildLinks)
+			->AddField(&FLink::Path)
+			->OnMember(&FLink::Asset)
+				->AddField(&FAsset::CollectionId)
+				->AddField(&FAsset::TokenId);
+
+	SendRequest(AssetQuery->GetQueryString()).Next([OnCompleted, TokenId, CollectionId](const FString& OutJson)
+	{
+		if (OutJson.IsEmpty())
+		{
+			UE_LOG(LogAssetRegister, Warning, TEXT("[UGetAssetProfile] failed to load remote AssetProfile for %s:%s"), *CollectionId, *TokenId);
+			OnCompleted.ExecuteIfBound(false, TEXT(""));
+			return;
+		}
+			
+		FAsset OutAsset;
+		if (QueryStringUtil::TryGetModel(OutJson, OutAsset))
+		{
+			OnCompleted.ExecuteIfBound(OutAsset.Profiles.Contains(TEXT("asset-profile")),
+				OutAsset.Profiles.FindOrAdd(TEXT("asset-profile")));
+			return;
+		}
+			
+		OnCompleted.ExecuteIfBound(false, TEXT(""));
+	});
 }
 
 void UAssetRegisterQueryingLibrary::GetAssets(const TArray<FString>& Addresses, const TArray<FString>& Collections,
@@ -72,11 +83,25 @@ void UAssetRegisterQueryingLibrary::GetAssets(const TArray<FString>& Addresses, 
 	// QueryBuilder->RegisterField<FAsset>(&FAsset::Metadata, &FAssetMetadata::Id);
 }
 
-TFuture<FString> UAssetRegisterQueryingLibrary::SendRequest(const FString& URL, const FString& RawContent)
+TFuture<FString> UAssetRegisterQueryingLibrary::SendRequest(const FString& RawContent)
 {
 	TSharedPtr<TPromise<FString>> Promise = MakeShareable(new TPromise<FString>());
 	TFuture<FString> Future = Promise->GetFuture();
 
+	FString URL;
+	const UAssetRegisterSettings* Settings = GetDefault<UAssetRegisterSettings>();
+	check(Settings);
+	
+	if (Settings)
+	{
+		URL = Settings->ProfileURL;
+	}
+	else
+	{
+		UE_LOG(LogAssetRegister, Warning, TEXT("[UGetAssetProfile] UAssetRegisterSettings was null, returning empty string"));
+		Promise->SetValue(TEXT(""));
+	}
+	
 	const TSharedRef<IHttpRequest> Request = FHttpModule::Get().CreateRequest();
 	
 	Request->SetURL(URL);

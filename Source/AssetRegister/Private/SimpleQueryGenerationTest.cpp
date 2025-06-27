@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "Schemas/Asset.h"
 #include "Schemas/AssetLink.h"
+#include "Schemas/Inputs/AssetConnection.h"
 #include "Schemas/Inputs/AssetInput.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(SimpleQueryGenerationTest,
@@ -26,56 +27,59 @@ FString RemoveAllWhitespace(const FString& Input)
 
 bool SimpleQueryGenerationTest::RunTest(const FString& Parameters)
 {
-	//TSharedPtr<FQuery<FAsset>> Query = MakeShareable(new FQuery<FAsset>());
-	TSharedPtr<FQueryBuilder<FAsset>> Query = MakeShareable(FQueryBuilder<FAsset>::Create());
+	const auto TokenId = TEXT("2227");
+	const auto CollectionId = TEXT("7668:root:17508");
+	auto AssetQuery = FAssetRegister::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 
-	TestEqual(TEXT("Model Name should match with type of QueryRegistry"), Query->GetModelString(),
-		TEXT("asset"));
-
-	const auto TokenId = TEXT("400");
-	const auto CollectionId = TEXT("7672:root:303204");
-	const auto Argument = FAssetInput(TokenId, CollectionId);
-	Query->AddArgument(Argument);
-
-	TestEqual(TEXT("Arguments should be split up by ,"), Query->GetArgumentsString(),
-		TEXT("tokenId:\"400\",collectionId:\"7672:root:303204\""));
+	AssetQuery->AddField(&FAsset::Id)
+		->AddField<FAsset>(&FAsset::Profiles)
+		->OnMember(&FAsset::Metadata)
+			->AddField(&FAssetMetadata::RawAttributes);
 	
-	Query->AddField(&FAsset::Id);
-	Query->AddField(&FAsset::Profiles);
-	Query->OnMember(&FAsset::Metadata).AddField(&FAssetMetadata::RawAttributes);
-	Query->OnUnion<FNFTAssetLink>(&FAsset::Links).AddField(&FNFTAssetLink::ChildLinks);
+	FAssetConnection Input = FAssetConnection();
+	Input.Addresses = {TEXT("0xFFfffffF00000000000000000000000000000f59")};
 	
-	FString ExpectedFieldString = R"(
-	{
-	  id
-	  profiles
-	  metadata {
-	    rawAttributes
-	}
-	})";
-	UE_LOG(LogTemp, Log, TEXT("Actual FieldString: %s"), *Query->GetFieldString());
-	TestEqual(TEXT("Fields should only display if set"), RemoveAllWhitespace(Query->GetFieldString()), RemoveAllWhitespace(ExpectedFieldString));
+	AssetQuery->OnMember(&FAsset::Links)
+		->OnUnion<FNFTAssetLink, FAssetLink>()
+			->OnArray(&FNFTAssetLink::ChildLinks)->AddField(&FLink::Path)
+			->OnMember(&FLink::Asset)->AddField(&FAsset::Id);
+	
+	AssetQuery->OnMember(&FAsset::Links)->OnUnion<FSFTAssetLink, FAssetLink>()
+			->OnArray(&FSFTAssetLink::ParentLinks)->AddArgument(Input)->AddField(&FAsset::Id);
 	
 	FString ExpectedQueryString = R"(
 	query {
-	  asset(tokenId: "400", collectionId: "7672:root:303204")
-		{
-		  id
-		  profiles
-		  metadata {
-		    rawAttributes
-		}
-		}
+	 asset(tokenId:"2227",collectionId:"7668:root:17508") {
+	   id
+	   profiles
+	   metadata {
+	     rawAttributes
+	   }
+	   links {
+	     ... on NFTAssetLink {
+	       childLinks {
+	         path
+	         asset {
+	           id
+	         }
+	       }
+	     }
+	     ... on SFTAssetLink {
+	       parentLinks(addresses:["0xFFfffffF00000000000000000000000000000f59"]) {
+	         id
+	       }
+	     }
+	   }
+	 }
 	})";
 	
-	UE_LOG(LogTemp, Log, TEXT("Actual QueryString: %s"), *RemoveAllWhitespace(Query->GetQueryString()));
-	UE_LOG(LogTemp, Log, TEXT("Expected QueryString %s"), *RemoveAllWhitespace(ExpectedQueryString));
+	UE_LOG(LogTemp, Log, TEXT("Actual QueryString: %s"), *AssetQuery->GetQueryString());
 	
-	TestEqual(TEXT("Full query string should include everything"), RemoveAllWhitespace(Query->GetQueryString()), RemoveAllWhitespace(ExpectedQueryString));
+	TestEqual(TEXT("Full query string should include everything"), RemoveAllWhitespace(AssetQuery->GetQueryString()), RemoveAllWhitespace(ExpectedQueryString));
 	
 	bool bHttpRequestCompleted = false;
-	UAssetRegisterQueryingLibrary::SendRequest(TEXT("https://ar-api.futureverse.cloud/graphql"), ExpectedQueryString).Next(
-		[this, Query, &bHttpRequestCompleted](const FString& OutJson)
+	UAssetRegisterQueryingLibrary::SendRequest(ExpectedQueryString).Next(
+		[this, &bHttpRequestCompleted](const FString& OutJson)
 	{
 		FAsset OutAsset;
 		if (QueryStringUtil::TryGetModel(OutJson, OutAsset))

@@ -4,12 +4,12 @@
 USTRUCT(BlueprintType)
 struct FAssetInput
 {
+	GENERATED_BODY()
+
 	FAssetInput(){}
 	FAssetInput(const FString& TokenId, const FString& CollectionId)
 		: TokenId(TokenId), CollectionId(CollectionId){}
-
-	GENERATED_BODY()
-
+		
 	UPROPERTY(EditAnywhere, meta=(ParameterType = "String"), meta=(QueryName = "tokenId"))
 	FString TokenId;
 	

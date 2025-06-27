@@ -3,16 +3,16 @@
 #include "Link.h"
 #include "AssetLink.generated.h"
 
-USTRUCT(meta=(QueryName = "asset"))
+USTRUCT(meta=(QueryName = "SFTAssetLink"))
 struct FSFTAssetLink : public FAssetLink
 {
 	GENERATED_BODY()
 	
-	UPROPERTY()
+	UPROPERTY(meta=(QueryName = "parentLinks"))
 	TArray<FAsset> ParentLinks;
 };
 
-USTRUCT()
+USTRUCT(meta=(QueryName = "NFTAssetLink"))
 struct FNFTAssetLink : public FAssetLink
 {
 	GENERATED_BODY()

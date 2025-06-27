@@ -26,5 +26,5 @@ public:
 	UFUNCTION(BlueprintCallable)
 	static void GetAssets(const TArray<FString>& Addresses, const TArray<FString>& Collections, const FGetJsonCompleted& OnCompleted);
 	
-	static TFuture<FString> SendRequest(const FString& URL, const FString& Content);
+	static TFuture<FString> SendRequest(const FString& Content);
 };

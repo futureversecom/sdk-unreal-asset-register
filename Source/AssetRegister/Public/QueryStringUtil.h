@@ -1,4 +1,5 @@
 #pragma once
+#include "JsonObjectConverter.h"
 #include "AssetRegisterLog.h"
 
 namespace QueryStringUtil

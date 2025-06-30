@@ -45,25 +45,43 @@ namespace QueryStringUtil
 		return FinalJson;
 	}
 	
-	template<typename TStruct, typename TField>
-	FString GetQueryName(TField TStruct::* FieldPtr)
+	template<typename TClass, typename TField, std::enable_if_t<std::is_base_of_v<UObject, TClass>, int> = 0>
+	FString GetQueryName(TField TClass::* FieldPtr)
 	{
-		const UStruct* Struct = TBaseStructure<TStruct>::Get();
-		const uint64 Offset = (uint64)(&(reinterpret_cast<TStruct*>(0)->*FieldPtr));
+		UClass* Class = std::remove_pointer_t<TClass>::StaticClass();
+		const uint64 Offset = (uint64)&(reinterpret_cast<TClass*>(0)->*FieldPtr);
 
-		for (TFieldIterator<FProperty> It(Struct); It; ++It)
+		for (TFieldIterator<FProperty> It(Class); It; ++It)
 		{
 			if (It->GetOffset_ForUFunction() == Offset)
 			{
-				if (It->HasMetaData(*QueryStringUtil::QueryNameMetadata))
-					return It->GetMetaData(*QueryStringUtil::QueryNameMetadata);
+				if (It->HasMetaData(*QueryNameMetadata))
+					return It->GetMetaData(*QueryNameMetadata);
 				return It->GetName();
 			}
 		}
 		return TEXT("<UnknownField>");
 	}
 	
-	template<typename TStruct>
+	template<typename TStruct, typename TField, std::enable_if_t<TStruct::StaticStruct != nullptr, int> = 0>
+	FString GetQueryName(TField TStruct::* FieldPtr)
+	{
+		const UStruct* Struct = TBaseStructure<TStruct>::Get();
+		const uint64 Offset = (uint64)&(reinterpret_cast<TStruct*>(0)->*FieldPtr);
+
+		for (TFieldIterator<FProperty> It(Struct); It; ++It)
+		{
+			if (It->GetOffset_ForUFunction() == Offset)
+			{
+				if (It->HasMetaData(*QueryNameMetadata))
+					return It->GetMetaData(*QueryNameMetadata);
+				return It->GetName();
+			}
+		}
+		return TEXT("<UnknownField>");
+	}
+
+	template<typename TStruct, std::enable_if_t<TStruct::StaticStruct != nullptr, int> = 0>
 	FString GetQueryName()
 	{
 		const UStruct* Struct = TStruct::StaticStruct();
@@ -71,7 +89,7 @@ namespace QueryStringUtil
 		{
 			return Struct->GetMetaData(*QueryNameMetadata);
 		}
-        
+
 		FString StructName = Struct->GetFName().ToString();
 		if (StructName.StartsWith(TEXT("F")) && FChar::IsUpper(StructName[1]))
 		{
@@ -80,32 +98,87 @@ namespace QueryStringUtil
 		return StructName;
 	}
 	
+	// UObject class pointer version
+	template<typename TClass, std::enable_if_t<std::is_base_of_v<UObject, TClass>, int> = 0>
+	FString GetQueryName()
+	{
+		UClass* Class = TClass::StaticClass();
+
+		if (Class->HasMetaData(*QueryNameMetadata))
+		{
+			return Class->GetMetaData(*QueryNameMetadata);
+		}
+
+		FString ClassName = Class->GetFName().ToString();
+		if (ClassName.StartsWith(TEXT("U")) && FChar::IsUpper(ClassName[1]))
+		{
+			ClassName = ClassName.RightChop(1);
+		}
+		return ClassName;
+	}
+	
 	template<typename TModel>
 	bool TryGetModel(const FString& JsonString, TModel& OutStruct)
 	{
-	    TSharedPtr<FJsonObject> RootObject;
-	    TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
+		TSharedPtr<FJsonObject> RootObject;
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
 	
-	    if (!FJsonSerializer::Deserialize(Reader, RootObject) || !RootObject.IsValid())
-	    {
-	        UE_LOG(LogAssetRegister, Error, TEXT("Failed to parse JSON string."));
-	        return false;
-	    }
+		if (!FJsonSerializer::Deserialize(Reader, RootObject) || !RootObject.IsValid())
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("Failed to parse JSON string."));
+			return false;
+		}
 	
-	    const TSharedPtr<FJsonObject>* DataObject;
-	    if (!RootObject->TryGetObjectField(TEXT("data"), DataObject))
-	    {
-	        UE_LOG(LogAssetRegister, Error, TEXT("Missing 'data' field in the response."));
-	        return false;
-	    }
+		const TSharedPtr<FJsonObject>* DataObject;
+		if (!RootObject->TryGetObjectField(TEXT("data"), DataObject))
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("Missing 'data' field in the response."));
+			return false;
+		}
+		
+		const TSharedPtr<FJsonObject>* TargetObject;
+		if (!(*DataObject)->TryGetObjectField(GetQueryName<TModel>(), TargetObject))
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("Missing target field '%s' in 'data'."), *GetQueryName<TModel>());
+			return false;
+		}
 	
-	    const TSharedPtr<FJsonObject>* TargetObject;
-	    if (!(*DataObject)->TryGetObjectField(GetQueryName<TModel>(), TargetObject))
-	    {
-	        UE_LOG(LogAssetRegister, Error, TEXT("Missing target field '%s' in 'data'."), *GetQueryName<TModel>());
-	        return false;
-	    }
+		return FJsonObjectConverter::JsonObjectToUStruct<TModel>(TargetObject->ToSharedRef(), &OutStruct);
+	}
+
+	template<typename TModel, typename TStruct>
+	bool TryGetModelField(const FString& JsonString, const FString& TargetFieldName, TStruct& OutStruct)
+	{
+		TSharedPtr<FJsonObject> RootObject;
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
 	
-	    return FJsonObjectConverter::JsonObjectToUStruct<TModel>(TargetObject->ToSharedRef(), &OutStruct);
+		if (!FJsonSerializer::Deserialize(Reader, RootObject) || !RootObject.IsValid())
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("Failed to parse JSON string."));
+			return false;
+		}
+	
+		const TSharedPtr<FJsonObject>* DataObject;
+		if (!RootObject->TryGetObjectField(TEXT("data"), DataObject))
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("Missing 'data' field in the response."));
+			return false;
+		}
+		
+		const TSharedPtr<FJsonObject>* ModelObject;
+		if (!(*DataObject)->TryGetObjectField(GetQueryName<TModel>(), ModelObject))
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("Missing model field '%s' in 'data'."), *GetQueryName<TModel>());
+			return false;
+		}
+		
+		const TSharedPtr<FJsonObject>* FieldObject;
+		if (!(*ModelObject)->TryGetObjectField(TargetFieldName, FieldObject))
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("Missing target field '%s' in '%s'."), *TargetFieldName, *GetQueryName<TModel>());
+			return false;
+		}
+
+		return FJsonObjectConverter::JsonObjectToUStruct<TStruct>(FieldObject->ToSharedRef(), &OutStruct);
 	}
 };

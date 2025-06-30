@@ -40,12 +40,15 @@ bool SimpleQueryGenerationTest::RunTest(const FString& Parameters)
 	Input.Addresses = {TEXT("0xFFfffffF00000000000000000000000000000f59")};
 	
 	AssetQuery->OnMember(&FAsset::Links)
-		->OnUnion<FNFTAssetLink, FAssetLink>()
-			->OnArray(&FNFTAssetLink::ChildLinks)->AddField(&FLink::Path)
-			->OnMember(&FLink::Asset)->AddField(&FAsset::Id);
+	->OnUnion<UNFTAssetLink, UAssetLink>()
+		->OnArray(&UNFTAssetLink::ChildLinks)
+			->AddField(&FLink::Path)
+			->OnMember(&FLink::Asset)
+				->AddField(&FAsset::CollectionId)
+				->AddField(&FAsset::TokenId);
 	
-	AssetQuery->OnMember(&FAsset::Links)->OnUnion<FSFTAssetLink, FAssetLink>()
-			->OnArray(&FSFTAssetLink::ParentLinks)->AddArgument(Input)->AddField(&FAsset::Id);
+	AssetQuery->OnMember(&FAsset::Links)->OnUnion<USFTAssetLink, UAssetLink>()
+			->OnArray(&USFTAssetLink::ParentLinks)->AddArgument(Input)->AddField(&FAsset::Id);
 	
 	FString ExpectedQueryString = R"(
 	query {
@@ -60,7 +63,8 @@ bool SimpleQueryGenerationTest::RunTest(const FString& Parameters)
 	       childLinks {
 	         path
 	         asset {
-	           id
+	           collectionId
+			   tokenId
 	         }
 	       }
 	     }
@@ -92,6 +96,26 @@ bool SimpleQueryGenerationTest::RunTest(const FString& Parameters)
 			{
 				UE_LOG(LogTemp, Log, TEXT("Parsed Metadata.RawAttributes trait_type: %s value: %s"), *RawAttribute.Trait_type, *RawAttribute.Value);
 			}
+			
+			FNFTAssetLinkData NFTAssetLinkData;
+			if (QueryStringUtil::TryGetModelField<FAsset, FNFTAssetLinkData>(OutJson, TEXT("links"), NFTAssetLinkData))
+			{
+				UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
+				NFTAssetLink->ChildLinks.Append(NFTAssetLinkData.ChildLinks);
+				
+				for (auto ChildLink : NFTAssetLink->ChildLinks)
+				{
+					UE_LOG(LogTemp, Log, TEXT("ChildLink Path: %s TokenId: %s CollectionId: %s"), *ChildLink.Path, *ChildLink.Asset.TokenId, *ChildLink.Asset.CollectionId);
+				}
+			}
+			else
+			{
+				AddError("Failed to get NFTAssetLink Data!");
+			}
+		}
+			else
+		{
+			AddError(FString::Printf(TEXT("Failed to get Asset Object from Json: %s!"), *OutJson));
 		}
 		bHttpRequestCompleted = true;
 	});

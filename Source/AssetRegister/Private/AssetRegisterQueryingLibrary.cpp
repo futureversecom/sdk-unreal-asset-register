@@ -30,52 +30,70 @@ void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, cons
 		}
 		
 		FAsset OutAsset;
-		if (QueryStringUtil::TryGetModel(OutJson, OutAsset))
+		if (!QueryStringUtil::TryGetModel(OutJson, OutAsset))
 		{
-			OnCompleted.ExecuteIfBound(OutAsset.Profiles.Contains(TEXT("asset-profile")),
-				OutAsset.Profiles.FindOrAdd(TEXT("asset-profile")));
-			return;
+			UE_LOG(LogAssetRegister, Error, TEXT("Failed to get Asset Object from Json: %s!"), *OutJson);
+			OnCompleted.ExecuteIfBound(false, TEXT(""));
 		}
 		
-		OnCompleted.ExecuteIfBound(false, TEXT(""));
+		OnCompleted.ExecuteIfBound(OutAsset.Profiles.Contains(TEXT("asset-profile")),
+				OutAsset.Profiles.FindOrAdd(TEXT("asset-profile")));
 	});
 }
 
 void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const FString& CollectionId,
-	const FGetJsonCompleted& OnCompleted)
+	const FGetAssetCompleted& OnCompleted)
 {
 	auto AssetQuery = FAssetRegister::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 	AssetQuery->OnMember(&FAsset::Links)
-	->OnUnion<FNFTAssetLink, FAssetLink>()
-		->OnArray(&FNFTAssetLink::ChildLinks)
+	->OnUnion<UNFTAssetLink, UAssetLink>()
+		->OnArray(&UNFTAssetLink::ChildLinks)
 			->AddField(&FLink::Path)
 			->OnMember(&FLink::Asset)
 				->AddField(&FAsset::CollectionId)
 				->AddField(&FAsset::TokenId);
 
-	SendRequest(AssetQuery->GetQueryString()).Next([OnCompleted, TokenId, CollectionId](const FString& OutJson)
+	FString ModelName = AssetQuery->GetModelString();
+	SendRequest(AssetQuery->GetQueryString()).Next([OnCompleted, TokenId, CollectionId, ModelName](const FString& OutJson)
 	{
 		if (OutJson.IsEmpty())
 		{
 			UE_LOG(LogAssetRegister, Warning, TEXT("[UGetAssetProfile] failed to load remote AssetProfile for %s:%s"), *CollectionId, *TokenId);
-			OnCompleted.ExecuteIfBound(false, TEXT(""));
+			OnCompleted.ExecuteIfBound(false, FAsset());
 			return;
 		}
-			
+		
 		FAsset OutAsset;
-		if (QueryStringUtil::TryGetModel(OutJson, OutAsset))
+		const bool bGotModel = QueryStringUtil::TryGetModel(OutJson, OutAsset);
+		if (!bGotModel)
 		{
-			OnCompleted.ExecuteIfBound(OutAsset.Profiles.Contains(TEXT("asset-profile")),
-				OutAsset.Profiles.FindOrAdd(TEXT("asset-profile")));
+			UE_LOG(LogAssetRegister, Error, TEXT("Failed to get Asset Object from Json: %s!"), *OutJson);
+			OnCompleted.ExecuteIfBound(false, OutAsset);
 			return;
 		}
-			
-		OnCompleted.ExecuteIfBound(false, TEXT(""));
+		
+		FNFTAssetLinkData NFTAssetLinkData;
+		const bool bGotLinks = QueryStringUtil::TryGetModelField<FAsset, FNFTAssetLinkData>(OutJson, TEXT("links"), NFTAssetLinkData);
+		if (!bGotLinks)
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("[GetAssetLinks] Failed to get NFTAssetLink Data!"));
+			OnCompleted.ExecuteIfBound(false, OutAsset);
+		}
+		
+		UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
+		NFTAssetLink->ChildLinks.Append(NFTAssetLinkData.ChildLinks);
+		
+		for (auto ChildLink : NFTAssetLink->ChildLinks)
+		{
+			UE_LOG(LogAssetRegister, Verbose, TEXT("Parsed ChildLink Path: %s TokenId: %s CollectionId: %s"), *ChildLink.Path, *ChildLink.Asset.TokenId, *ChildLink.Asset.CollectionId);
+		}
+		
+		OnCompleted.ExecuteIfBound(true, OutAsset);
 	});
 }
 
 void UAssetRegisterQueryingLibrary::GetAssets(const TArray<FString>& Addresses, const TArray<FString>& Collections,
-											const FGetJsonCompleted& OnCompleted)
+	const FGetJsonCompleted& OnCompleted)
 {
 	//TSharedPtr<FQuery<FAsset>> QueryBuilder = MakeShareable(new FQuery<FAsset>());
 	// QueryBuilder->RegisterField<FAsset>(&FAsset::TokenId);

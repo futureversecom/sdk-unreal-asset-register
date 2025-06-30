@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Schemas/Asset.h"
 #include "AssetRegisterQueryingLibrary.generated.h"
 
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FGetJsonCompleted, bool, bSuccess, FString, Json);
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FGetAssetCompleted, bool, bSuccess, FAsset, Asset);
 
 /**
  * 
@@ -21,7 +23,7 @@ public:
 	static void GetAssetProfile(const FString& TokenId, const FString& CollectionId, const FGetJsonCompleted& OnCompleted);
 
 	UFUNCTION(BlueprintCallable)
-	static void GetAssetLinks(const FString& TokenId, const FString& CollectionId, const FGetJsonCompleted& OnCompleted);
+	static void GetAssetLinks(const FString& TokenId, const FString& CollectionId, const FGetAssetCompleted& OnCompleted);
 	
 	UFUNCTION(BlueprintCallable)
 	static void GetAssets(const TArray<FString>& Addresses, const TArray<FString>& Collections, const FGetJsonCompleted& OnCompleted);

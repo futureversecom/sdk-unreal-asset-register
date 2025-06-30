@@ -77,6 +77,11 @@ public:
 	
 	FQueryNode(const FString& InName, bool bIsUnion = false) : IQueryNode(InName, bIsUnion) {}
 
+	FString GetModelString() const
+	{
+		return QueryStringUtil::GetQueryName<TModel>();
+	}
+	
 	void AddArgument(const FString& Argument)
 	{
 		Arguments.Add(Argument);
@@ -137,19 +142,23 @@ public:
 	}
 
 	template<typename TDerived, typename TParent>
-	requires std::is_base_of_v<TParent, TDerived> && std::is_same_v<TParent, TModel>
-	FQueryNode<TDerived>* OnUnion()
+	requires std::is_base_of_v<std::remove_pointer_t<TParent>, std::remove_pointer_t<TDerived>>
+	&& std::is_same_v<std::remove_pointer_t<TParent>, std::remove_pointer_t<TModel>>
+	FQueryNode<std::remove_pointer_t<TDerived>>* OnUnion()
 	{
-		FString FieldName = QueryStringUtil::GetQueryName<TDerived>();
+		using Derived = std::remove_pointer_t<TDerived>;
+		
+		FString FieldName = QueryStringUtil::GetQueryName<Derived>();
 		if (!ChildrenMap.Contains(FieldName))
 		{
-			ChildrenMap.Add(FieldName, MakeShared<FQueryNode<TDerived>>(FieldName, true));
+			ChildrenMap.Add(FieldName, MakeShared<FQueryNode<Derived>>(FieldName, true));
 		}
 		
-		return StaticCastSharedPtr<FQueryNode<TDerived>>(ChildrenMap[FieldName]).Get();
+		return StaticCastSharedPtr<FQueryNode<Derived>>(ChildrenMap[FieldName]).Get();
 	}
 
-	template<typename TParent, typename TElement> requires std::is_same_v<TParent, TModel>
+	template<typename TParent, typename TElement>
+	requires std::is_same_v<std::remove_pointer_t<TParent>, std::remove_pointer_t<TModel>>
 	FQueryNode<TElement>* OnArray(TArray<TElement> TParent::* ArrayPtr)
 	{
 		FString FieldName = QueryStringUtil::GetQueryName<TParent>(ArrayPtr);

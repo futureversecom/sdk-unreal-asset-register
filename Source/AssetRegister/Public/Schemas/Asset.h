@@ -1,8 +1,8 @@
 #pragma once
 #include "Asset.generated.h"
 
-USTRUCT()
-struct FAssetLink
+UCLASS()
+class UAssetLink : public UObject
 {
 	GENERATED_BODY()
 };
@@ -52,7 +52,7 @@ struct FAsset
 	FString TokenId;
 
 	UPROPERTY(EditAnywhere, meta=(QueryName = "links"))
-	FAssetLink Links;
+	UAssetLink* Links;
 	
 	UPROPERTY(EditAnywhere, meta=(QueryName = "profiles"))
 	TMap<FString, FString> Profiles;

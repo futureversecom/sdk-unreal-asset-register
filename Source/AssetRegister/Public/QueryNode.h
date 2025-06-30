@@ -87,33 +87,47 @@ public:
 		Arguments.Add(Argument);
 	}
 	
-	template<typename TArgument>
-	FQueryNode<TModel>* AddArgument(const TArgument& Argument)
+	template<typename T>
+	FQueryNode<TModel>* AddArgument(const T& Argument)
 	{
-		const UScriptStruct* ArgumentDefinition = TBaseStructure<TArgument>::Get();
-
 		FString OutJson;
-		if (FJsonObjectConverter::UStructToJsonObjectString(ArgumentDefinition, &Argument, OutJson,
-			0,0,0, nullptr, false))
+		const UScriptStruct* ArgumentDefinition = TBaseStructure<T>::Get();
+
+		if (TSharedPtr<FJsonObject> ArgumentJson = FJsonObjectConverter::UStructToJsonObject<T>(Argument))
 		{
+			T DefaultStruct;
+			TSharedPtr<FJsonObject> DefaultJson = FJsonObjectConverter::UStructToJsonObject<T>(DefaultStruct);
+			
+			for (const auto& Pair : DefaultJson->Values)
+			{
+				if (ArgumentJson->HasField(Pair.Key) &&
+					FJsonValue::CompareEqual(*ArgumentJson->Values[Pair.Key].Get(), *Pair.Value.Get()))
+				{
+					ArgumentJson->RemoveField(Pair.Key);
+				}
+			}
+			
+			TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutJson);
+			FJsonSerializer::Serialize(ArgumentJson.ToSharedRef(), Writer);
+
 			AddArgument(OutJson);
 		}
 		return this;
 	}
 
-	void AddArgument(const FString& Name, const FString& Value)
+	void AddArgument(const FString& ArgName, const FString& Value)
 	{
-		AddArgument(FString::Printf(TEXT("%s:\"%s\""), *Name, *Value));
+		AddArgument(FString::Printf(TEXT("%s:\"%s\""), *ArgName, *Value));
 	}
 
-	void AddArgument(const FString& Name, const int32 Value)
+	void AddArgument(const FString& ArgName, const int32 Value)
 	{
-		AddArgument(FString::Printf(TEXT("%s:%s"), *Name, *FString::FromInt(Value)));
+		AddArgument(FString::Printf(TEXT("%s:%s"), *ArgName, *FString::FromInt(Value)));
 	}
 
-	void AddArgument(const FString& Name, const bool Value)
+	void AddArgument(const FString& ArgName, const bool Value)
 	{
-		AddArgument(FString::Printf(TEXT("%s:%s"), *Name, Value ? TEXT("true") : TEXT("false")));
+		AddArgument(FString::Printf(TEXT("%s:%s"), *ArgName, Value ? TEXT("true") : TEXT("false")));
 	}
 	
 	template< typename TParent, typename TField> requires std::is_same_v<TParent, TModel>

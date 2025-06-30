@@ -8,14 +8,35 @@ class UAssetLink : public UObject
 };
 
 USTRUCT()
+struct FCollection
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(meta=(QueryName = "chainId"))
+	FString ChainId;
+	
+	UPROPERTY(meta=(QueryName = "chainType"))
+	FString ChainType;
+
+	UPROPERTY(meta=(QueryName = "id"))
+	FString Id;
+	
+	UPROPERTY(meta=(QueryName = "location"))
+	FString Location;
+	
+	UPROPERTY(meta=(QueryName = "name"))
+	FString Name;
+};
+
+USTRUCT()
 struct FRawAttributes
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY()
 	FString Value;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY()
 	FString Trait_type;
 };
 
@@ -24,16 +45,19 @@ struct FAssetMetadata
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, meta=(QueryName = "id"))
+	UPROPERTY(meta=(QueryName = "id"))
 	FString Id;
 	
-	UPROPERTY(EditAnywhere, meta=(QueryName = "uri"))
+	UPROPERTY(meta=(QueryName = "uri"))
 	FString Uri;
+
+	UPROPERTY(meta=(QueryName = "properties"))
+	TMap<FString, FString> Properties;
 	
-	UPROPERTY(EditAnywhere, meta=(QueryName = "attributes"))
-	TArray<FString> Attributes;
+	UPROPERTY(meta=(QueryName = "attributes"))
+	TMap<FString, FString> Attributes;
 	
-	UPROPERTY(EditAnywhere, meta=(QueryName = "rawAttributes"))
+	UPROPERTY(meta=(QueryName = "rawAttributes"))
 	TArray<FRawAttributes> RawAttributes;
 };
 
@@ -42,22 +66,25 @@ struct FAsset
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, meta=(QueryName = "id"))
+	UPROPERTY(meta=(QueryName = "id"))
 	FString Id;
 	
-	UPROPERTY(EditAnywhere, meta=(QueryName = "collectionId"))
+	UPROPERTY(meta=(QueryName = "collectionId"))
 	FString CollectionId;
 	
-	UPROPERTY(EditAnywhere, meta=(QueryName = "tokenId"))
+	UPROPERTY(meta=(QueryName = "tokenId"))
 	FString TokenId;
 
-	UPROPERTY(EditAnywhere, meta=(QueryName = "links"))
+	UPROPERTY(meta=(QueryName = "collection"))
+	FCollection Collection;
+
+	UPROPERTY(meta=(QueryName = "links"))
 	UAssetLink* Links;
 	
-	UPROPERTY(EditAnywhere, meta=(QueryName = "profiles"))
+	UPROPERTY(meta=(QueryName = "profiles"))
 	TMap<FString, FString> Profiles;
 	
-	UPROPERTY(EditAnywhere, meta=(QueryName = "metadata"))
+	UPROPERTY(meta=(QueryName = "metadata"))
 	FAssetMetadata Metadata;
 };
 

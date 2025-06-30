@@ -132,6 +132,12 @@ namespace QueryStringUtil
 		const TSharedPtr<FJsonObject>* DataObject;
 		if (!RootObject->TryGetObjectField(TEXT("data"), DataObject))
 		{
+			const TSharedPtr<FJsonObject>* TargetObject;
+			if (RootObject->TryGetObjectField(GetQueryName<TModel>(), TargetObject))
+			{
+				return FJsonObjectConverter::JsonObjectToUStruct<TModel>(TargetObject->ToSharedRef(), &OutStruct);
+			}
+			
 			UE_LOG(LogAssetRegister, Error, TEXT("Missing 'data' field in the response."));
 			return false;
 		}

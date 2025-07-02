@@ -10,6 +10,7 @@
 #include "Interfaces/IHttpResponse.h"
 #include "Schemas/Asset.h"
 #include "Schemas/AssetLink.h"
+#include "Schemas/NFTAssetLink.h"
 #include "Schemas/Inputs/AssetInput.h"
 
 void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, const FString& CollectionId,
@@ -81,24 +82,112 @@ void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const 
 		}
 		
 		UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
-		NFTAssetLink->ChildLinks.Append(NFTAssetLinkData.ChildLinks);
-		
-		for (auto ChildLink : NFTAssetLink->ChildLinks)
+				
+		for (FLink& ChildLink : NFTAssetLinkData.ChildLinks)
 		{
-			UE_LOG(LogAssetRegister, Verbose, TEXT("Parsed ChildLink Path: %s TokenId: %s CollectionId: %s"), *ChildLink.Path, *ChildLink.Asset.TokenId, *ChildLink.Asset.CollectionId);
+			FString Path = ChildLink.Path;
+			int32 Index = 0;
+			if (ChildLink.Path.FindChar('#', Index))
+			{
+				Path = ChildLink.Path.Mid(Index + 1);
+				Path = Path.Replace(TEXT("_accessory"), TEXT(""));
+			}
+			
+			ChildLink.Path = Path;
+			NFTAssetLink->ChildLinks.Add(ChildLink);
 		}
+		
+		OutAsset.Links = NFTAssetLink;
 		
 		OnCompleted.ExecuteIfBound(true, OutAsset);
 	});
 }
 
-void UAssetRegisterQueryingLibrary::GetAssets(const TArray<FString>& Addresses, const TArray<FString>& Collections,
-	const FGetJsonCompleted& OnCompleted)
+void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInput, const FGetAssetsCompleted& OnCompleted)
 {
-	//TSharedPtr<FQuery<FAsset>> QueryBuilder = MakeShareable(new FQuery<FAsset>());
-	// QueryBuilder->RegisterField<FAsset>(&FAsset::TokenId);
-	// QueryBuilder->RegisterField<FAsset>(&FAsset::CollectionId);
-	// QueryBuilder->RegisterField<FAsset>(&FAsset::Metadata, &FAssetMetadata::Id);
+	auto AssetsQuery = FAssetRegister::AddAssetsQuery(AssetsInput);
+	const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)->OnMember(&FAssetEdge::Node);
+	AssetNode->AddField(&FAsset::TokenId)->AddField(&FAsset::CollectionId);
+	AssetNode->OnMember(&FAsset::Metadata)
+			->AddField(&FAssetMetadata::Properties)
+			->AddField(&FAssetMetadata::Attributes)
+			->AddField(&FAssetMetadata::RawAttributes);
+	
+	AssetNode->OnMember(&FAsset::Collection)
+			->AddField(&FCollection::ChainId)
+			->AddField(&FCollection::ChainType)
+			->AddField(&FCollection::Location)
+			->AddField(&FCollection::Name);
+
+	AssetNode->OnMember(&FAsset::Links)
+	->OnUnion<UNFTAssetLink, UAssetLink>()
+		->OnArray(&UNFTAssetLink::ChildLinks)
+			->AddField(&FLink::Path)
+			->OnMember(&FLink::Asset)
+				->AddField(&FAsset::CollectionId)
+				->AddField(&FAsset::TokenId);
+
+	SendRequest(AssetsQuery->GetQueryString()).Next([OnCompleted](const FString& OutJson)
+	{
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(OutJson);
+		TSharedPtr<FJsonObject> RootObject;
+		FJsonSerializer::Deserialize(Reader, RootObject);
+
+		TArray<TSharedPtr<FJsonValue>> AssetNodes;
+		QueryStringUtil::FindAllFieldsRecursively(RootObject, TEXT("node"), AssetNodes);
+
+		FAssets Assets;
+		for (const auto& AssetNode : AssetNodes)
+		{
+			auto AssetNodeObject = AssetNode->AsObject();
+			FAsset Asset;
+
+			if (!FJsonObjectConverter::JsonObjectToUStruct(AssetNodeObject.ToSharedRef(), &Asset))
+			{
+				UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::GetAssets Failed to convert Json to Asset!"));
+				LogJsonString(AssetNodeObject);
+				continue;
+			}
+			
+			FString MetadataJson;
+			auto MetadataJsonObject = FJsonObjectConverter::UStructToJsonObject(Asset.Metadata);
+			const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&MetadataJson);
+			FJsonSerializer::Serialize(MetadataJsonObject.ToSharedRef(), Writer);
+			
+			const TSharedPtr<FJsonObject>* LinksObject;
+			if (AssetNodeObject->TryGetObjectField(TEXT("links"), LinksObject))
+			{
+				FNFTAssetLinkData NFTAssetLinkData;
+				if (!FJsonObjectConverter::JsonObjectToUStruct(LinksObject->ToSharedRef(), &NFTAssetLinkData))
+				{
+					UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::GetAssets Failed to get NFTAssetLink Data!"));
+					LogJsonString(*LinksObject);
+					continue;
+				}
+				
+				UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
+				
+				for (FLink& ChildLink : NFTAssetLinkData.ChildLinks)
+				{
+					FString Path = ChildLink.Path;
+					int32 Index = 0;
+					if (ChildLink.Path.FindChar('#', Index))
+					{
+						Path = ChildLink.Path.Mid(Index + 1);
+						Path = Path.Replace(TEXT("_accessory"), TEXT(""));
+					}
+					
+					ChildLink.Path = Path;
+					NFTAssetLink->ChildLinks.Add(ChildLink);
+				}
+				
+				Asset.Links = NFTAssetLink;
+			}
+
+			Assets.Edges.Add(FAssetEdge(Asset));
+		}
+		OnCompleted.ExecuteIfBound(true, Assets);
+	});
 }
 
 TFuture<FString> UAssetRegisterQueryingLibrary::SendRequest(const FString& RawContent)
@@ -160,4 +249,15 @@ TFuture<FString> UAssetRegisterQueryingLibrary::SendRequest(const FString& RawCo
 	Request->ProcessRequest();
 
 	return Future;
+}
+
+void UAssetRegisterQueryingLibrary::LogJsonString(const TSharedPtr<FJsonObject>& JsonObject)
+{
+	FString JsonString;
+
+	FJsonObjectWrapper ObjectWrapper;
+	ObjectWrapper.JsonObject = JsonObject;
+	ObjectWrapper.JsonObjectToString(JsonString);
+	
+	UE_LOG(LogAssetRegister, Warning, TEXT("Used JsonString: %s"), *JsonString);
 }

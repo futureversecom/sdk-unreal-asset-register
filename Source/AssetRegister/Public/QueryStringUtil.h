@@ -187,4 +187,113 @@ namespace QueryStringUtil
 
 		return FJsonObjectConverter::JsonObjectToUStruct<TStruct>(FieldObject->ToSharedRef(), &OutStruct);
 	}
+
+	template<typename TModel, typename TStruct>
+	bool TryGetModelField(const TSharedPtr<FJsonObject>& JsonObject, const FString& TargetFieldName, TStruct& OutStruct)
+	{
+		if (!JsonObject.IsValid())
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("[TryGetModelField] Failed to parse JSON string."));
+			return false;
+		}
+	
+		const TSharedPtr<FJsonObject>* DataObject;
+		if (!JsonObject->TryGetObjectField(TEXT("data"), DataObject))
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("[TryGetModelField] Missing 'data' field in the response."));
+			return false;
+		}
+		
+		const TSharedPtr<FJsonObject>* ModelObject;
+		if (!(*DataObject)->TryGetObjectField(GetQueryName<TModel>(), ModelObject))
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("[TryGetModelField] Missing model field '%s' in 'data'."), *GetQueryName<TModel>());
+			return false;
+		}
+		
+		const TSharedPtr<FJsonObject>* FieldObject;
+		if (!(*ModelObject)->TryGetObjectField(TargetFieldName, FieldObject))
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("[TryGetModelField] Missing target field '%s' in '%s'."), *TargetFieldName, *GetQueryName<TModel>());
+			return false;
+		}
+
+		return FJsonObjectConverter::JsonObjectToUStruct<TStruct>(FieldObject->ToSharedRef(), &OutStruct);
+	}
+
+	inline void FindAllFieldsRecursively(const TSharedPtr<FJsonObject>& JsonObject, const FString& TargetField, TArray<TSharedPtr<FJsonValue>>& OutValues)
+	{
+		if (!JsonObject.IsValid()) return;
+
+		for (const auto& Pair : JsonObject->Values)
+		{
+			if (Pair.Key == TargetField)
+			{
+				OutValues.Add(Pair.Value);
+			}
+
+			if (Pair.Value->Type == EJson::Object)
+			{
+				FindAllFieldsRecursively(Pair.Value->AsObject(), TargetField, OutValues);
+			}
+			else if (Pair.Value->Type == EJson::Array)
+			{
+				for (const auto& Element : Pair.Value->AsArray())
+				{
+					if (Element->Type == EJson::Object)
+					{
+						FindAllFieldsRecursively(Element->AsObject(), TargetField, OutValues);
+					}
+				}
+			}
+		}
+	}
+
+	inline TSharedPtr<FJsonValue> FindFieldRecursively(const TSharedPtr<FJsonObject>& JsonObject, const FString& TargetField)
+	{
+		if (!JsonObject.IsValid()) return nullptr;
+
+		for (const auto& Pair : JsonObject->Values)
+		{
+			// Direct match
+			if (Pair.Key == TargetField)
+			{
+				return Pair.Value;
+			}
+
+			// If value is an object, search inside it
+			if (Pair.Value->Type == EJson::Object)
+			{
+				TSharedPtr<FJsonObject> SubObject = Pair.Value->AsObject();
+				if (SubObject.IsValid())
+				{
+					TSharedPtr<FJsonValue> Found = FindFieldRecursively(SubObject, TargetField);
+					if (Found.IsValid())
+					{
+						return Found;
+					}
+				}
+			}
+
+			// If value is an array, search inside any object elements
+			else if (Pair.Value->Type == EJson::Array)
+			{
+				const TArray<TSharedPtr<FJsonValue>>& Array = Pair.Value->AsArray();
+				for (const TSharedPtr<FJsonValue>& Element : Array)
+				{
+					if (Element.IsValid() && Element->Type == EJson::Object)
+					{
+						TSharedPtr<FJsonObject> ElementObj = Element->AsObject();
+						TSharedPtr<FJsonValue> Found = FindFieldRecursively(ElementObj, TargetField);
+						if (Found.IsValid())
+						{
+							return Found;
+						}
+					}
+				}
+			}
+		}
+
+		return nullptr;
+	}
 };

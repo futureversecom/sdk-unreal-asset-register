@@ -1,0 +1,28 @@
+// Copyright (c) 2025, Futureverse Corporation Limited. All rights reserved.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "AssetLink.h"
+#include "SFTAssetLink.generated.h"
+
+USTRUCT(meta=(QueryName = "SFTAssetLink"))
+struct FSFTAssetLinkData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(meta=(QueryName = "parentLinks"))
+	TArray<FAsset> ParentLinks;
+};
+
+/**
+ * 
+ */
+UCLASS(meta=(QueryName = "SFTAssetLink"))
+class ASSETREGISTER_API USFTAssetLink : public UAssetLink
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(meta=(QueryName = "parentLinks"))
+	TArray<FAsset> ParentLinks;
+};

@@ -1,11 +1,7 @@
 #pragma once
 #include "Asset.generated.h"
 
-UCLASS()
-class UAssetLink : public UObject
-{
-	GENERATED_BODY()
-};
+class UAssetLink;
 
 USTRUCT()
 struct FCollection

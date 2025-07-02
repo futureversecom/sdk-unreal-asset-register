@@ -4,6 +4,8 @@
 #include "Misc/AutomationTest.h"
 #include "Schemas/Asset.h"
 #include "Schemas/AssetLink.h"
+#include "Schemas/NFTAssetLink.h"
+#include "Schemas/SFTAssetLink.h"
 #include "Schemas/Inputs/AssetConnection.h"
 #include "Schemas/Inputs/AssetInput.h"
 
@@ -80,10 +82,12 @@ bool AssetQueryGenerationTest::RunTest(const FString& Parameters)
 		OutAsset.Profiles.Contains(TEXT("asset-profile")), true);
 			
 			UE_LOG(LogTemp, Log, TEXT("Parsed AssetProfile: %s"), *OutAsset.Profiles.FindOrAdd(TEXT("asset-profile")));
-			for (auto RawAttribute : OutAsset.Metadata.RawAttributes)
-			{
-				UE_LOG(LogTemp, Log, TEXT("Parsed Metadata.RawAttributes trait_type: %s value: %s"), *RawAttribute.Trait_type, *RawAttribute.Value);
-			}
+
+			FString MetadataJson;
+			auto MetadataJsonObject = FJsonObjectConverter::UStructToJsonObject(OutAsset.Metadata);
+			const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&MetadataJson);
+			FJsonSerializer::Serialize(MetadataJsonObject.ToSharedRef(), Writer);
+			UE_LOG(LogTemp, Log, TEXT("Parsed Metadata: %s"), *MetadataJson);
 			
 			FNFTAssetLinkData NFTAssetLinkData;
 			if (QueryStringUtil::TryGetModelField<FAsset, FNFTAssetLinkData>(OutJson, TEXT("links"), NFTAssetLinkData))

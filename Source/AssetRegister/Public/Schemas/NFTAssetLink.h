@@ -3,12 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Asset.h"
 #include "AssetLink.h"
 #include "Link.h"
 #include "NFTAssetLink.generated.h"
 
 USTRUCT(meta=(QueryName = "NFTAssetLink"))
-struct FNFTAssetLinkData
+struct FNFTAssetLinkData : public FAssetLinkData
 {
 	GENERATED_BODY()
 

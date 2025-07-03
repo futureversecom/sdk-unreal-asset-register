@@ -1,6 +1,12 @@
 #pragma once
-#include "Asset.h"
 #include "AssetLink.generated.h"
+
+USTRUCT()
+struct FAssetLinkData
+{
+	GENERATED_BODY()
+	
+};
 
 UCLASS()
 class ASSETREGISTER_API UAssetLink : public UObject

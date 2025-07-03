@@ -47,8 +47,8 @@ void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const 
 {
 	auto AssetQuery = FAssetRegister::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 	AssetQuery->OnMember(&FAsset::Links)
-	->OnUnion<UNFTAssetLink, UAssetLink>()
-		->OnArray(&UNFTAssetLink::ChildLinks)
+	->OnUnion<FNFTAssetLinkData, FAssetLinkData>()
+		->OnArray(&FNFTAssetLinkData::ChildLinks)
 			->AddField(&FLink::Path)
 			->OnMember(&FLink::Asset)
 				->AddField(&FAsset::CollectionId)
@@ -97,7 +97,7 @@ void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const 
 			NFTAssetLink->ChildLinks.Add(ChildLink);
 		}
 		
-		OutAsset.Links = NFTAssetLink;
+		OutAsset.LinkWrapper.Links = NFTAssetLink;
 		
 		OnCompleted.ExecuteIfBound(true, OutAsset);
 	});
@@ -107,7 +107,9 @@ void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInpu
 {
 	auto AssetsQuery = FAssetRegister::AddAssetsQuery(AssetsInput);
 	const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)->OnMember(&FAssetEdge::Node);
-	AssetNode->AddField(&FAsset::TokenId)->AddField(&FAsset::CollectionId);
+	AssetNode->AddField(&FAsset::TokenId)
+			->AddField(&FAsset::CollectionId)
+			->AddField(&FAsset::Profiles);
 	AssetNode->OnMember(&FAsset::Metadata)
 			->AddField(&FAssetMetadata::Properties)
 			->AddField(&FAssetMetadata::Attributes)
@@ -119,13 +121,13 @@ void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInpu
 			->AddField(&FCollection::Location)
 			->AddField(&FCollection::Name);
 
-	AssetNode->OnMember(&FAsset::Links)
-	->OnUnion<UNFTAssetLink, UAssetLink>()
-		->OnArray(&UNFTAssetLink::ChildLinks)
-			->AddField(&FLink::Path)
-			->OnMember(&FLink::Asset)
-				->AddField(&FAsset::CollectionId)
-				->AddField(&FAsset::TokenId);
+	// AssetNode->OnMember(&FAsset::Links)
+	// ->OnUnion<FNFTAssetLinkData, FAssetLinkData>()
+	// 	->OnArray(&FNFTAssetLinkData::ChildLinks)
+	// 		->AddField(&FLink::Path)
+	// 		->OnMember(&FLink::Asset)
+	// 			->AddField(&FAsset::CollectionId)
+	// 			->AddField(&FAsset::TokenId);
 
 	SendRequest(AssetsQuery->GetQueryString()).Next([OnCompleted](const FString& OutJson)
 	{
@@ -149,41 +151,37 @@ void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInpu
 				continue;
 			}
 			
-			FString MetadataJson;
-			auto MetadataJsonObject = FJsonObjectConverter::UStructToJsonObject(Asset.Metadata);
-			const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&MetadataJson);
-			FJsonSerializer::Serialize(MetadataJsonObject.ToSharedRef(), Writer);
+			// const TSharedPtr<FJsonObject>* LinksObject;
+			// if (AssetNodeObject->TryGetObjectField(TEXT("links"), LinksObject))
+			// {
+			// 	FNFTAssetLinkData NFTAssetLinkData;
+			// 	if (!FJsonObjectConverter::JsonObjectToUStruct(LinksObject->ToSharedRef(), &NFTAssetLinkData))
+			// 	{
+			// 		UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::GetAssets Failed to get NFTAssetLink Data!"));
+			// 		LogJsonString(*LinksObject);
+			// 		continue;
+			// 	}
+			// 	
+			// 	UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
+			// 	
+			// 	for (FLink& ChildLink : NFTAssetLinkData.ChildLinks)
+			// 	{
+			// 		FString Path = ChildLink.Path;
+			// 		int32 Index = 0;
+			// 		if (ChildLink.Path.FindChar('#', Index))
+			// 		{
+			// 			Path = ChildLink.Path.Mid(Index + 1);
+			// 			Path = Path.Replace(TEXT("_accessory"), TEXT(""));
+			// 		}
+			// 		
+			// 		ChildLink.Path = Path;
+			// 		NFTAssetLink->ChildLinks.Add(ChildLink);
+			// 	}
+			// 	
+			// 	Asset.LinkWrapper.Links = NFTAssetLink;
+			// }
 			
-			const TSharedPtr<FJsonObject>* LinksObject;
-			if (AssetNodeObject->TryGetObjectField(TEXT("links"), LinksObject))
-			{
-				FNFTAssetLinkData NFTAssetLinkData;
-				if (!FJsonObjectConverter::JsonObjectToUStruct(LinksObject->ToSharedRef(), &NFTAssetLinkData))
-				{
-					UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::GetAssets Failed to get NFTAssetLink Data!"));
-					LogJsonString(*LinksObject);
-					continue;
-				}
-				
-				UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
-				
-				for (FLink& ChildLink : NFTAssetLinkData.ChildLinks)
-				{
-					FString Path = ChildLink.Path;
-					int32 Index = 0;
-					if (ChildLink.Path.FindChar('#', Index))
-					{
-						Path = ChildLink.Path.Mid(Index + 1);
-						Path = Path.Replace(TEXT("_accessory"), TEXT(""));
-					}
-					
-					ChildLink.Path = Path;
-					NFTAssetLink->ChildLinks.Add(ChildLink);
-				}
-				
-				Asset.Links = NFTAssetLink;
-			}
-
+			Asset.OriginalJsonData.JsonObject = AssetNodeObject;
 			Assets.Edges.Add(FAssetEdge(Asset));
 		}
 		OnCompleted.ExecuteIfBound(true, Assets);

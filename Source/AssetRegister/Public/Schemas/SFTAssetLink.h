@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Asset.h"
 #include "AssetLink.h"
 #include "SFTAssetLink.generated.h"
 
 USTRUCT(meta=(QueryName = "SFTAssetLink"))
-struct FSFTAssetLinkData
+struct FSFTAssetLinkData : public FAssetLinkData
 {
 	GENERATED_BODY()
 

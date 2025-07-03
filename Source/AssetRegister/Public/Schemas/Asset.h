@@ -1,7 +1,18 @@
 #pragma once
+#include "AssetLink.h"
+#include "JsonObjectWrapper.h"
 #include "Asset.generated.h"
 
 class UAssetLink;
+
+USTRUCT()
+struct FAssetLinkWrapper
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	UAssetLink* Links;
+};
 
 USTRUCT()
 struct FCollection
@@ -74,13 +85,19 @@ struct FAsset
 	UPROPERTY(meta=(QueryName = "collection"))
 	FCollection Collection;
 
+	UPROPERTY()
+	FAssetLinkWrapper LinkWrapper;
+
 	UPROPERTY(meta=(QueryName = "links"))
-	UAssetLink* Links;
+	FAssetLinkData Links;
 	
 	UPROPERTY(meta=(QueryName = "profiles"))
 	TMap<FString, FString> Profiles;
 	
 	UPROPERTY(meta=(QueryName = "metadata"))
 	FAssetMetadata Metadata;
+
+	UPROPERTY()
+	FJsonObjectWrapper OriginalJsonData;
 };
 

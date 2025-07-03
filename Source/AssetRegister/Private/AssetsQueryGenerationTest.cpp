@@ -3,6 +3,7 @@
 #include "QueryTestUtil.h"
 #include "Misc/AutomationTest.h"
 #include "Schemas/AssetLink.h"
+#include "Schemas/NFTAssetLink.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(AssetsQueryGenerationTest,
 								"UBFEmergenceDemo.sdk_unreal_asset_register.Source.AssetRegister.Private.AssetsQueryGenerationTest",
@@ -35,8 +36,8 @@ bool AssetsQueryGenerationTest::RunTest(const FString& Parameters)
 			->AddField(&FCollection::Name);
 	
 	AssetNode->OnMember(&FAsset::Links)
-		->OnUnion<UNFTAssetLink, UAssetLink>()
-			->OnArray(&UNFTAssetLink::ChildLinks)
+		->OnUnion<FNFTAssetLinkData, FAssetLinkData>()
+			->OnArray(&FNFTAssetLinkData::ChildLinks)
 				->AddField(&FLink::Path)
 				->OnMember(&FLink::Asset)
 					->AddField(&FAsset::CollectionId)
@@ -90,10 +91,10 @@ bool AssetsQueryGenerationTest::RunTest(const FString& Parameters)
 		TSharedPtr<FJsonObject> RootObject;
 		FJsonSerializer::Deserialize(Reader, RootObject);
 
-		TArray<TSharedPtr<FJsonValue>> AllAssetNodes;
-		QueryStringUtil::FindAllFieldsRecursively(RootObject, TEXT("node"), AllAssetNodes);
+		TArray<TSharedPtr<FJsonValue>> AssetNodes;
+		QueryStringUtil::FindAllFieldsRecursively(RootObject, TEXT("node"), AssetNodes);
 			
-		for (const auto& AssetNode : AllAssetNodes)
+		for (const auto& AssetNode : AssetNodes)
 		{
 			auto AssetNodeObject = AssetNode->AsObject();
 			FAsset Asset;
@@ -137,15 +138,20 @@ bool AssetsQueryGenerationTest::RunTest(const FString& Parameters)
 						NFTAssetLink->ChildLinks.Add(ChildLink);
 					}
 						
-					Asset.Links = NFTAssetLink;
+					Asset.LinkWrapper.Links = NFTAssetLink;
 
-					if (auto ParsedLink = Cast<UNFTAssetLink>(Asset.Links))
+					if (auto ParsedLink = Cast<UNFTAssetLink>(Asset.LinkWrapper.Links))
 					{
 						for (auto ChildLink : ParsedLink->ChildLinks)
 						{
+							UE_LOG(LogTemp, Log, TEXT("ChildLink Path: %s TokenId: %s CollectionId: %s"), *ChildLink.Path, *ChildLink.Asset.TokenId, *ChildLink.Asset.CollectionId);
 							AddErrorIfFalse(!ChildLink.Path.StartsWith(TEXT("http")),
 								FString::Printf(TEXT("Parsed ChildLink Path should have correct format. Actual: %s"), *ChildLink.Path));
 						}
+					}
+					else
+					{
+						AddError(TEXT("Failed to cast to UNFTAssetLink!"));
 					}
 				}
 				else

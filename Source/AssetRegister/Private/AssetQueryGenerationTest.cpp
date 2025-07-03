@@ -28,15 +28,15 @@ bool AssetQueryGenerationTest::RunTest(const FString& Parameters)
 	Input.Addresses = {TEXT("0xFFfffffF00000000000000000000000000000f59")};
 	
 	AssetQuery->OnMember(&FAsset::Links)
-	->OnUnion<UNFTAssetLink, UAssetLink>()
-		->OnArray(&UNFTAssetLink::ChildLinks)
+	->OnUnion<FNFTAssetLinkData, FAssetLinkData>()
+		->OnArray(&FNFTAssetLinkData::ChildLinks)
 			->AddField(&FLink::Path)
 			->OnMember(&FLink::Asset)
 				->AddField(&FAsset::CollectionId)
 				->AddField(&FAsset::TokenId);
 	
-	AssetQuery->OnMember(&FAsset::Links)->OnUnion<USFTAssetLink, UAssetLink>()
-			->OnArray(&USFTAssetLink::ParentLinks)->AddArgument(Input)->AddField(&FAsset::Id);
+	AssetQuery->OnMember(&FAsset::Links)->OnUnion<FSFTAssetLinkData, FAssetLinkData>()
+			->OnArray(&FSFTAssetLinkData::ParentLinks)->AddArgument(Input)->AddField(&FAsset::Id);
 	
 	FString ExpectedQueryString = R"(
 	query {

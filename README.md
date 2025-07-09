@@ -5,22 +5,27 @@ This Unreal Engine plugin provides an API for creating and sending GraphQL reque
 >
 >See https://ar-docs.futureverse.app/ for details on the Asset Register.
 
-## Features
+---
+
+## ✨ Features
 - Blueprint Library containing common Asset Register GraphQL queries in both Blueprint and C++ accessible format
 - Includes custom strongly-typed query builder to detect errors in compile time and auto-completion
 - Supports array fields, union types, and nested field selection
+  
+---
 
-## Installation
-Add the `AssetRegisterPlugin` to your project's plugins folder and enable it in the Plugins tab in unreal.
+## 🔧 Getting Started
+Add the `AssetRegisterPlugin` to your project's plugins folder and enable it in the Plugins tab in Unreal Engine.
 
-## Getting Started
-First, set the endpoint URL you want to send your requests.
+Set the endpoint URL you want to send your requests.
 
 The endpoint URL can be changed in `Plugins/Futureverse Asset Register`
 
 ![image](https://github.com/user-attachments/assets/e37e6858-0c0a-4998-8b88-10f19f6d53d1)
 
-## Querying Assets using Asset Register Querying Library
+---
+
+## 🔍 Querying Assets using Asset Register Querying Library
 ### Blueprint Example
 ![image](https://github.com/user-attachments/assets/44fb43ae-28fd-4bea-94f7-d5afc4181cd4)
 
@@ -45,7 +50,9 @@ UAssetRegisterQueryingLibrary::GetAssets(AssetConnectionInput).Next([](const FLo
 ```
 Note: this assets query has pre-configured fields. If you want to configure which fields to be included in the query, see [Making Custom Assets Query](#making-custom-assets-query) section below
 
-## Querying Asset Profile URI using Asset Register Querying Library
+---
+
+## 🔍 Querying Asset Profile URI using Asset Register Querying Library
 ### Blueprint Example
 ![image](https://github.com/user-attachments/assets/f74c16eb-f223-449c-ad0a-cda13a8a2257)
 
@@ -64,7 +71,9 @@ UAssetRegisterQueryingLibrary::GetAssetProfile(TokenId, CollectionId).Next([](co
 });
 ```
 
-## Querying AssetLinks using Asset Register Querying Library
+---
+
+## 🔍 Querying AssetLinks using Asset Register Querying Library
 ### Blueprint Example
 ![image](https://github.com/user-attachments/assets/fcfb4ef5-172e-4598-80ab-8fe6c02feb22)
 
@@ -87,7 +96,9 @@ UAssetRegisterQueryingLibrary::GetAssetLinks(TokenId, CollectionId).Next([](cons
 ```
 Note: `FAssetLinkWrapper` contains the actual UObject with data.
 
-## Making Custom Asset Query
+---
+
+## 🔍 Making Custom Asset Query
 ### C++ Example
 ```cpp
 const auto TokenId = TEXT("2227");
@@ -129,7 +140,9 @@ UAssetRegisterQueryingLibrary::SendRequest(AssetsQuery->GetQueryString()).Next([
 ```
 Note: Use `QueryStringUtil::TryGetModel<FAsset>` to convert raw json to `FAsset`
 
-## Making Custom Assets Query
+---
+
+## 🔍 Making Custom Assets Query
 ### C++ Example
 ```cpp
 const auto CollectionId = TEXT("7668:root:17508");

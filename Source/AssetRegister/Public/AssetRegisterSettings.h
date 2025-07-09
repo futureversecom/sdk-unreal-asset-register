@@ -8,13 +8,15 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(Config=Game, DefaultConfig, meta = (DisplayName = "Futureverse Asset Register"))
 class ASSETREGISTER_API UAssetRegisterSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY(meta=(GetOptions="GetURLOptions"))
+	UAssetRegisterSettings();
+	
+	UPROPERTY(EditAnywhere, Config, meta=(GetOptions="GetURLOptions"))
 	FString AssetRegisterURL = "https://ar-api.futureverse.app/graphql";
 
 	UFUNCTION()

@@ -2,3 +2,8 @@
 
 
 #include "AssetRegisterSettings.h"
+
+UAssetRegisterSettings::UAssetRegisterSettings()
+{
+	CategoryName = FName(TEXT("Plugins"));
+}

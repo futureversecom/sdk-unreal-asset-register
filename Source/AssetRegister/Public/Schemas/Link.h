@@ -3,38 +3,41 @@
 #pragma once
 #include "Link.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FOffChainAsset
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "assetId"))
 	FString AssetId;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "creatorCollectionId"))
 	FString CreatorCollectionId;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "creatorId"))
 	FString CreatorId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
+	FString Id;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "tokenId"))
 	FString TokenId;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "type"))
 	FString Type;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FLink
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(meta=(QueryName = "asset"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "asset"))
 	FAsset Asset;
 	
-	UPROPERTY(meta=(QueryName = "offChainAsset"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "offChainAsset"))
 	FOffChainAsset OffChainAsset;
 	
-	UPROPERTY(meta=(QueryName = "path"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "path"))
 	FString Path;
 };

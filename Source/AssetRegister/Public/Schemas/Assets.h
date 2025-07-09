@@ -2,20 +2,20 @@
 #include "Asset.h"
 #include "Assets.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAssetEdge
 {
 	GENERATED_BODY()
 
-	UPROPERTY(meta=(QueryName = "node"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "node"))
 	FAsset Node;
 };
 
-USTRUCT(meta=(QueryName = "assets"))
+USTRUCT(Blueprintable, meta=(QueryName = "assets"))
 struct FAssets
 {
 	GENERATED_BODY()
 
-	UPROPERTY(meta=(QueryName = "edges"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "edges"))
 	TArray<FAssetEdge> Edges;
 };

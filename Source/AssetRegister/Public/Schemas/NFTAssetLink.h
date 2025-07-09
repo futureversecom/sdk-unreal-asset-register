@@ -9,30 +9,30 @@
 #include "NFTAssetLink.generated.h"
 
 // data struct for UNFTAssetLink so it can deserialized
-USTRUCT(meta=(QueryName = "NFTAssetLink"))
+USTRUCT(BlueprintType, meta=(QueryName = "NFTAssetLink"))
 struct FNFTAssetLinkData : public FAssetLinkData
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "parentLink"))
 	FAsset ParentLink;
 	
-	UPROPERTY(meta=(QueryName = "childLinks"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "childLinks"))
 	TArray<FLink> ChildLinks;
 };
 
 /**
  * 
  */
-UCLASS(meta=(QueryName = "NFTAssetLink"))
+UCLASS(Blueprintable, meta=(QueryName = "NFTAssetLink"))
 class ASSETREGISTER_API UNFTAssetLink : public UAssetLink
 {
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAsset ParentLink;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FLink> ChildLinks;
 };

@@ -6,99 +6,99 @@
 class UAssetLink;
 
 // Wrapper struct for holding UAssetLink
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAssetLinkWrapper
 {
 	GENERATED_BODY()
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	UAssetLink* Links;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCollection
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(meta=(QueryName = "chainId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "chainId"))
 	FString ChainId;
 	
-	UPROPERTY(meta=(QueryName = "chainType"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "chainType"))
 	FString ChainType;
 
-	UPROPERTY(meta=(QueryName = "id"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
 	FString Id;
 	
-	UPROPERTY(meta=(QueryName = "location"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "location"))
 	FString Location;
 	
-	UPROPERTY(meta=(QueryName = "name"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "name"))
 	FString Name;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FRawAttributes
 {
 	GENERATED_BODY()
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Value;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Trait_type;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAssetMetadata
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(meta=(QueryName = "id"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
 	FString Id;
 	
-	UPROPERTY(meta=(QueryName = "uri"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "uri"))
 	FString Uri;
 
-	UPROPERTY(meta=(QueryName = "properties"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "properties"))
 	TMap<FString, FString> Properties;
 	
-	UPROPERTY(meta=(QueryName = "attributes"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "attributes"))
 	TMap<FString, FString> Attributes;
 	
-	UPROPERTY(meta=(QueryName = "rawAttributes"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "rawAttributes"))
 	TArray<FRawAttributes> RawAttributes;
 };
 
-USTRUCT(meta=(QueryName = "asset"))
+USTRUCT(BlueprintType, Blueprintable, meta=(QueryName = "asset"))
 struct FAsset
 {
 	GENERATED_BODY()
 
-	UPROPERTY(meta=(QueryName = "id"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
 	FString Id;
 	
-	UPROPERTY(meta=(QueryName = "collectionId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "collectionId"))
 	FString CollectionId;
 	
-	UPROPERTY(meta=(QueryName = "tokenId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "tokenId"))
 	FString TokenId;
 
-	UPROPERTY(meta=(QueryName = "collection"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "collection"))
 	FCollection Collection;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAssetLinkWrapper LinkWrapper;
 
 	UPROPERTY(meta=(QueryName = "links"))
 	FAssetLinkData Links;
 	
-	UPROPERTY(meta=(QueryName = "profiles"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "profiles"))
 	TMap<FString, FString> Profiles;
 	
-	UPROPERTY(meta=(QueryName = "metadata"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "metadata"))
 	FAssetMetadata Metadata;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FJsonObjectWrapper OriginalJsonData;
 };
 

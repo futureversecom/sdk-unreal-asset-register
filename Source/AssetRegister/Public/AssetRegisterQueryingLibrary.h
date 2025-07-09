@@ -73,7 +73,7 @@ public:
 	 * @param CollectionId The ID of the asset's collection.
 	 * @param OnCompleted Callback invoked when the request finishes.
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (AutoCreateRefTerm = "OnCompleted"))
 	static void GetAssetProfile(const FString& TokenId, const FString& CollectionId, const FGetJsonCompleted& OnCompleted);
 
 	/**
@@ -88,7 +88,7 @@ public:
 	 * @param CollectionId The ID of the asset's collection.
 	 * @param OnCompleted Callback invoked when the request finishes.
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (AutoCreateRefTerm = "OnCompleted"))
 	static void GetAssetLinks(const FString& TokenId, const FString& CollectionId, const FGetAssetCompleted& OnCompleted);
 
 	/**
@@ -102,7 +102,7 @@ public:
 	 * @param AssetsInput The connection input used to filter, paginate, or search assets.
 	 * @param OnCompleted Callback invoked when the request finishes.
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (AutoCreateRefTerm = "OnCompleted"))
 	static void GetAssets(const FAssetConnection& AssetsInput, const FGetAssetsCompleted& OnCompleted);
 
 	/**

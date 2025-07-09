@@ -8,23 +8,23 @@
 #include "SFTAssetLink.generated.h"
 
 // data struct for USFTAssetLink so it can deserialized
-USTRUCT(meta=(QueryName = "SFTAssetLink"))
+USTRUCT(BlueprintType, meta=(QueryName = "SFTAssetLink"))
 struct FSFTAssetLinkData : public FAssetLinkData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(meta=(QueryName = "parentLinks"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "parentLinks"))
 	TArray<FAsset> ParentLinks;
 };
 
 /**
  * 
  */
-UCLASS(meta=(QueryName = "SFTAssetLink"))
+UCLASS(BlueprintType, meta=(QueryName = "SFTAssetLink"))
 class ASSETREGISTER_API USFTAssetLink : public UAssetLink
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FAsset> ParentLinks;
 };

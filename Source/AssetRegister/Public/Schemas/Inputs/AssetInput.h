@@ -10,9 +10,9 @@ struct FAssetInput
 	FAssetInput(const FString& TokenId, const FString& CollectionId)
 		: TokenId(TokenId), CollectionId(CollectionId){}
 		
-	UPROPERTY(EditAnywhere, meta=(ParameterType = "String"), meta=(QueryName = "tokenId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "tokenId"))
 	FString TokenId;
 	
-	UPROPERTY(EditAnywhere, meta=(ParameterType = "CollectionId"), meta=(QueryName = "collectionId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "collectionId"))
 	FString CollectionId;
 };

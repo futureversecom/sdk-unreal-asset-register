@@ -8,12 +8,12 @@ struct FAssetConnection
 	
 	FAssetConnection(){}
 
-	UPROPERTY(EditAnywhere, meta=(QueryName = "addresses"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "addresses"))
 	TArray<FString> Addresses;
 
-	UPROPERTY(EditAnywhere,meta=(QueryName = "collectionIds"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "collectionIds"))
 	TArray<FString> CollectionIds;
 
-	UPROPERTY(EditAnywhere, meta=(QueryName = "first"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "first"))
 	float First = 0;
 };

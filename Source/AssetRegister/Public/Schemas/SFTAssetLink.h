@@ -7,6 +7,7 @@
 #include "AssetLink.h"
 #include "SFTAssetLink.generated.h"
 
+// data struct for USFTAssetLink so it can deserialized
 USTRUCT(meta=(QueryName = "SFTAssetLink"))
 struct FSFTAssetLinkData : public FAssetLinkData
 {
@@ -24,6 +25,6 @@ class ASSETREGISTER_API USFTAssetLink : public UAssetLink
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(meta=(QueryName = "parentLinks"))
+	UPROPERTY()
 	TArray<FAsset> ParentLinks;
 };

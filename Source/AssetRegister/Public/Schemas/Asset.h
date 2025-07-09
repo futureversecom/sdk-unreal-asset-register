@@ -5,6 +5,7 @@
 
 class UAssetLink;
 
+// Wrapper struct for holding UAssetLink
 USTRUCT()
 struct FAssetLinkWrapper
 {

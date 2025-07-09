@@ -1,5 +1,5 @@
 #include "AssetRegisterQueryingLibrary.h"
-#include "QueryBuilder.h"
+#include "AssetRegisterQueryBuilder.h"
 #include "QueryTestUtil.h"
 #include "Misc/AutomationTest.h"
 #include "Schemas/Asset.h"
@@ -17,7 +17,7 @@ bool AssetQueryGenerationTest::RunTest(const FString& Parameters)
 {
 	const auto TokenId = TEXT("2227");
 	const auto CollectionId = TEXT("7668:root:17508");
-	auto AssetQuery = FAssetRegister::AddAssetQuery(FAssetInput(TokenId, CollectionId));
+	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 
 	AssetQuery->AddField(&FAsset::Id)
 		->AddField<FAsset>(&FAsset::Profiles)

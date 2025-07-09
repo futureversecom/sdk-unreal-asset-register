@@ -15,7 +15,7 @@ class ASSETREGISTER_API UAssetRegisterSettings : public UDeveloperSettings
 	
 public:
 	UPROPERTY(meta=(GetOptions="GetURLOptions"))
-	FString ProfileURL = "https://ar-api.futureverse.app/graphql";
+	FString AssetRegisterURL = "https://ar-api.futureverse.app/graphql";
 
 	UFUNCTION()
 	TArray<FString> GetURLOptions() const

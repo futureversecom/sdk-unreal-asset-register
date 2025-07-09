@@ -8,6 +8,7 @@
 #include "Link.h"
 #include "NFTAssetLink.generated.h"
 
+// data struct for UNFTAssetLink so it can deserialized
 USTRUCT(meta=(QueryName = "NFTAssetLink"))
 struct FNFTAssetLinkData : public FAssetLinkData
 {
@@ -32,6 +33,6 @@ public:
 	UPROPERTY()
 	FAsset ParentLink;
 	
-	UPROPERTY(meta=(QueryName = "childLinks"))
+	UPROPERTY()
 	TArray<FLink> ChildLinks;
 };

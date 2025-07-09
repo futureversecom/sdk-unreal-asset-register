@@ -1,5 +1,5 @@
 #include "AssetRegisterQueryingLibrary.h"
-#include "QueryBuilder.h"
+#include "AssetRegisterQueryBuilder.h"
 #include "QueryTestUtil.h"
 #include "Misc/AutomationTest.h"
 #include "Schemas/AssetLink.h"
@@ -19,7 +19,7 @@ bool AssetsQueryGenerationTest::RunTest(const FString& Parameters)
 	AssetConnectionInput.CollectionIds = {CollectionId};
 	AssetConnectionInput.First = 2;
 	
-	auto AssetsQuery = FAssetRegister::AddAssetsQuery(AssetConnectionInput);
+	auto AssetsQuery = FAssetRegisterQueryBuilder::AddAssetsQuery(AssetConnectionInput);
 	const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)->OnMember(&FAssetEdge::Node);
 	AssetNode->AddField(&FAsset::TokenId)
 			->AddField(&FAsset::CollectionId)

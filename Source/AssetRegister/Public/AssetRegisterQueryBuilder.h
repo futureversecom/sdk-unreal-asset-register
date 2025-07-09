@@ -6,10 +6,15 @@
 #include "Schemas/Inputs/AssetConnection.h"
 #include "Schemas/Inputs/AssetInput.h"
 
-class FAssetRegister
+/**
+ * Utility class for building AssetRegister queries.
+ *
+ * Provides static helpers to create queries with required inputs.
+ */
+class FAssetRegisterQueryBuilder
 {
 public:
-	FAssetRegister() {}
+	FAssetRegisterQueryBuilder() {}
 
 	static TSharedPtr<FQueryNode<FAsset>> AddAssetQuery(const FAssetInput& Input)
 	{

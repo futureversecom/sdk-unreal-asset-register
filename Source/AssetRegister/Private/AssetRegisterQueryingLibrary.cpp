@@ -6,7 +6,7 @@
 #include "AssetRegisterLog.h"
 #include "AssetRegisterSettings.h"
 #include "HttpModule.h"
-#include "QueryBuilder.h"
+#include "AssetRegisterQueryBuilder.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Schemas/Asset.h"
 #include "Schemas/AssetLink.h"
@@ -16,7 +16,7 @@
 void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, const FString& CollectionId,
 	const FGetJsonCompleted& OnCompleted)
 {
-	auto AssetQuery = FAssetRegister::AddAssetQuery(FAssetInput(TokenId, CollectionId));
+	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 
 	AssetQuery->AddField(&FAsset::Id)
 		->AddField<FAsset>(&FAsset::Profiles);
@@ -48,10 +48,9 @@ TFuture<FLoadJsonResult> UAssetRegisterQueryingLibrary::GetAssetProfile(const FS
 	TSharedPtr<TPromise<FLoadJsonResult>> Promise = MakeShareable(new TPromise<FLoadJsonResult>());
 	TFuture<FLoadJsonResult> Future = Promise->GetFuture();
 	
-	auto AssetQuery = FAssetRegister::AddAssetQuery(FAssetInput(TokenId, CollectionId));
+	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 
-	AssetQuery->AddField(&FAsset::Id)
-		->AddField<FAsset>(&FAsset::Profiles);
+	AssetQuery->AddField<FAsset>(&FAsset::Profiles);
 	
 	SendRequest(AssetQuery->GetQueryString()).Next([Promise, TokenId, CollectionId](const FString& OutJson)
 	{
@@ -87,9 +86,9 @@ TFuture<FLoadJsonResult> UAssetRegisterQueryingLibrary::GetAssetProfile(const FS
 }
 
 void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const FString& CollectionId,
-												const FGetAssetCompleted& OnCompleted)
+	const FGetAssetCompleted& OnCompleted)
 {
-	auto AssetQuery = FAssetRegister::AddAssetQuery(FAssetInput(TokenId, CollectionId));
+	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 	AssetQuery->OnMember(&FAsset::Links)
 	->OnUnion<FNFTAssetLinkData, FAssetLinkData>()
 		->OnArray(&FNFTAssetLinkData::ChildLinks)
@@ -152,7 +151,7 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::GetAssetLinks(const FSt
 	TSharedPtr<TPromise<FLoadAssetResult>> Promise = MakeShareable(new TPromise<FLoadAssetResult>());
 	TFuture<FLoadAssetResult> Future = Promise->GetFuture();
 	
-	auto AssetQuery = FAssetRegister::AddAssetQuery(FAssetInput(TokenId, CollectionId));
+	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 	AssetQuery->OnMember(&FAsset::Links)
 	->OnUnion<FNFTAssetLinkData, FAssetLinkData>()
 		->OnArray(&FNFTAssetLinkData::ChildLinks)
@@ -216,7 +215,7 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::GetAssetLinks(const FSt
 
 void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInput, const FGetAssetsCompleted& OnCompleted)
 {
-	auto AssetsQuery = FAssetRegister::AddAssetsQuery(AssetsInput);
+	auto AssetsQuery = FAssetRegisterQueryBuilder::AddAssetsQuery(AssetsInput);
 	const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)->OnMember(&FAssetEdge::Node);
 	AssetNode->AddField(&FAsset::TokenId)
 			->AddField(&FAsset::CollectionId)
@@ -231,15 +230,7 @@ void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInpu
 			->AddField(&FCollection::ChainType)
 			->AddField(&FCollection::Location)
 			->AddField(&FCollection::Name);
-
-	// AssetNode->OnMember(&FAsset::Links)
-	// ->OnUnion<FNFTAssetLinkData, FAssetLinkData>()
-	// 	->OnArray(&FNFTAssetLinkData::ChildLinks)
-	// 		->AddField(&FLink::Path)
-	// 		->OnMember(&FLink::Asset)
-	// 			->AddField(&FAsset::CollectionId)
-	// 			->AddField(&FAsset::TokenId);
-
+	
 	SendRequest(AssetsQuery->GetQueryString()).Next([OnCompleted](const FString& OutJson)
 	{
 		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(OutJson);
@@ -262,41 +253,64 @@ void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInpu
 				continue;
 			}
 			
-			// const TSharedPtr<FJsonObject>* LinksObject;
-			// if (AssetNodeObject->TryGetObjectField(TEXT("links"), LinksObject))
-			// {
-			// 	FNFTAssetLinkData NFTAssetLinkData;
-			// 	if (!FJsonObjectConverter::JsonObjectToUStruct(LinksObject->ToSharedRef(), &NFTAssetLinkData))
-			// 	{
-			// 		UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::GetAssets Failed to get NFTAssetLink Data!"));
-			// 		LogJsonString(*LinksObject);
-			// 		continue;
-			// 	}
-			// 	
-			// 	UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
-			// 	
-			// 	for (FLink& ChildLink : NFTAssetLinkData.ChildLinks)
-			// 	{
-			// 		FString Path = ChildLink.Path;
-			// 		int32 Index = 0;
-			// 		if (ChildLink.Path.FindChar('#', Index))
-			// 		{
-			// 			Path = ChildLink.Path.Mid(Index + 1);
-			// 			Path = Path.Replace(TEXT("_accessory"), TEXT(""));
-			// 		}
-			// 		
-			// 		ChildLink.Path = Path;
-			// 		NFTAssetLink->ChildLinks.Add(ChildLink);
-			// 	}
-			// 	
-			// 	Asset.LinkWrapper.Links = NFTAssetLink;
-			// }
-			
 			Asset.OriginalJsonData.JsonObject = AssetNodeObject;
 			Assets.Edges.Add(FAssetEdge(Asset));
 		}
 		OnCompleted.ExecuteIfBound(true, Assets);
 	});
+}
+
+TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInput)
+{
+	TSharedPtr<TPromise<FLoadAssetsResult>> Promise = MakeShared<TPromise<FLoadAssetsResult>>();
+	
+	auto AssetsQuery = FAssetRegisterQueryBuilder::AddAssetsQuery(AssetsInput);
+	const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)->OnMember(&FAssetEdge::Node);
+	AssetNode->AddField(&FAsset::TokenId)
+			->AddField(&FAsset::CollectionId)
+			->AddField(&FAsset::Profiles);
+	AssetNode->OnMember(&FAsset::Metadata)
+			->AddField(&FAssetMetadata::Properties)
+			->AddField(&FAssetMetadata::Attributes)
+			->AddField(&FAssetMetadata::RawAttributes);
+	
+	AssetNode->OnMember(&FAsset::Collection)
+			->AddField(&FCollection::ChainId)
+			->AddField(&FCollection::ChainType)
+			->AddField(&FCollection::Location)
+			->AddField(&FCollection::Name);
+	
+	SendRequest(AssetsQuery->GetQueryString()).Next([Promise](const FString& OutJson)
+	{
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(OutJson);
+		TSharedPtr<FJsonObject> RootObject;
+		FJsonSerializer::Deserialize(Reader, RootObject);
+
+		TArray<TSharedPtr<FJsonValue>> AssetNodes;
+		QueryStringUtil::FindAllFieldsRecursively(RootObject, TEXT("node"), AssetNodes);
+
+		FAssets Assets;
+		for (const auto& AssetNode : AssetNodes)
+		{
+			auto AssetNodeObject = AssetNode->AsObject();
+			FAsset Asset;
+
+			if (!FJsonObjectConverter::JsonObjectToUStruct(AssetNodeObject.ToSharedRef(), &Asset))
+			{
+				UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::GetAssets Failed to convert Json to Asset!"));
+				LogJsonString(AssetNodeObject);
+				continue;
+			}
+				
+			Asset.OriginalJsonData.JsonObject = AssetNodeObject;
+			Assets.Edges.Add(FAssetEdge(Asset));
+		}
+		auto OutResult = FLoadAssetsResult();
+		OutResult.SetResult(Assets);
+		Promise->SetValue(OutResult);
+	});
+
+	return Promise->GetFuture();
 }
 
 TFuture<FString> UAssetRegisterQueryingLibrary::SendRequest(const FString& RawContent)
@@ -310,7 +324,7 @@ TFuture<FString> UAssetRegisterQueryingLibrary::SendRequest(const FString& RawCo
 	
 	if (Settings)
 	{
-		URL = Settings->ProfileURL;
+		URL = Settings->AssetRegisterURL;
 	}
 	else
 	{

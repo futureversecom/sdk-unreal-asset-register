@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Asset.h"
 #include "AssetLink.h"
+#include "Schemas/Asset.h"
 #include "SFTAssetLink.generated.h"
 
 // data struct for USFTAssetLink so it can deserialized
@@ -24,7 +24,8 @@ UCLASS(BlueprintType, meta=(QueryName = "SFTAssetLink"))
 class ASSETREGISTER_API USFTAssetLink : public UAssetLink
 {
 	GENERATED_BODY()
+	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FAsset> ParentLinks;
+	FSFTAssetLinkData Data;
 };

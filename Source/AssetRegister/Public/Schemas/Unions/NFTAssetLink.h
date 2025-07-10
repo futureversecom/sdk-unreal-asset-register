@@ -3,9 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Asset.h"
 #include "AssetLink.h"
-#include "Link.h"
+#include "Schemas/Asset.h"
+#include "Schemas/Link.h"
+
 #include "NFTAssetLink.generated.h"
 
 // data struct for UNFTAssetLink so it can deserialized
@@ -24,15 +25,12 @@ struct FNFTAssetLinkData : public FAssetLinkData
 /**
  * 
  */
-UCLASS(Blueprintable, meta=(QueryName = "NFTAssetLink"))
+UCLASS(BlueprintType)
 class ASSETREGISTER_API UNFTAssetLink : public UAssetLink
 {
 	GENERATED_BODY()
 	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FAsset ParentLink;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FLink> ChildLinks;
+	FNFTAssetLinkData Data;
 };

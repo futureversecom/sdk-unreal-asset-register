@@ -9,8 +9,8 @@
 #include "AssetRegisterQueryBuilder.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Schemas/Asset.h"
-#include "Schemas/AssetLink.h"
-#include "Schemas/NFTAssetLink.h"
+#include "Schemas/Unions/AssetLink.h"
+#include "Schemas/Unions/NFTAssetLink.h"
 #include "Schemas/Inputs/AssetInput.h"
 
 void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, const FString& CollectionId,
@@ -90,7 +90,7 @@ void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const 
 {
 	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 	AssetQuery->OnMember(&FAsset::Links)
-	->OnUnion<FNFTAssetLinkData, FAssetLinkData>()
+	->OnUnion<FNFTAssetLinkData>()
 		->OnArray(&FNFTAssetLinkData::ChildLinks)
 			->AddField(&FLink::Path)
 			->OnMember(&FLink::Asset)
@@ -124,7 +124,8 @@ void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const 
 		}
 		
 		UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
-				
+		NFTAssetLink->Data = NFTAssetLinkData;
+		
 		for (FLink& ChildLink : NFTAssetLinkData.ChildLinks)
 		{
 			FString Path = ChildLink.Path;
@@ -136,7 +137,7 @@ void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const 
 			}
 			
 			ChildLink.Path = Path;
-			NFTAssetLink->ChildLinks.Add(ChildLink);
+			NFTAssetLink->Data.ChildLinks.Add(ChildLink);
 		}
 		
 		OutAsset.LinkWrapper.Links = NFTAssetLink;
@@ -153,7 +154,7 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::GetAssetLinks(const FSt
 	
 	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 	AssetQuery->OnMember(&FAsset::Links)
-	->OnUnion<FNFTAssetLinkData, FAssetLinkData>()
+	->OnUnion<FNFTAssetLinkData>()
 		->OnArray(&FNFTAssetLinkData::ChildLinks)
 			->AddField(&FLink::Path)
 			->OnMember(&FLink::Asset)
@@ -189,8 +190,9 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::GetAssetLinks(const FSt
 		}
 		
 		UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
-				
-		for (FLink& ChildLink : NFTAssetLinkData.ChildLinks)
+		NFTAssetLink->Data = NFTAssetLinkData;
+		
+		for (FLink& ChildLink : NFTAssetLink->Data.ChildLinks)
 		{
 			FString Path = ChildLink.Path;
 			int32 Index = 0;
@@ -199,9 +201,8 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::GetAssetLinks(const FSt
 				Path = ChildLink.Path.Mid(Index + 1);
 				Path = Path.Replace(TEXT("_accessory"), TEXT(""));
 			}
-			
+				
 			ChildLink.Path = Path;
-			NFTAssetLink->ChildLinks.Add(ChildLink);
 		}
 		
 		OutAsset.LinkWrapper.Links = NFTAssetLink;
@@ -254,7 +255,9 @@ void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInpu
 			}
 			
 			Asset.OriginalJsonData.JsonObject = AssetNodeObject;
-			Assets.Edges.Add(FAssetEdge(Asset));
+			FAssetEdge Edge;
+			Edge.Node = Asset;
+			Assets.Edges.Add(Edge);
 		}
 		OnCompleted.ExecuteIfBound(true, Assets);
 	});
@@ -303,7 +306,9 @@ TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::GetAssets(const FAsset
 			}
 				
 			Asset.OriginalJsonData.JsonObject = AssetNodeObject;
-			Assets.Edges.Add(FAssetEdge(Asset));
+			FAssetEdge Edge;
+			Edge.Node = Asset;
+			Assets.Edges.Add(Edge);
 		}
 		auto OutResult = FLoadAssetsResult();
 		OutResult.SetResult(Assets);

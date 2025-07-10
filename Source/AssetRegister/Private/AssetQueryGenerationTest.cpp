@@ -3,66 +3,57 @@
 #include "QueryTestUtil.h"
 #include "Misc/AutomationTest.h"
 #include "Schemas/Asset.h"
-#include "Schemas/AssetLink.h"
-#include "Schemas/NFTAssetLink.h"
-#include "Schemas/SFTAssetLink.h"
-#include "Schemas/Inputs/AssetConnection.h"
+#include "Schemas/Unions/AssetLink.h"
+#include "Schemas/Unions/NFTAssetLink.h"
+#include "Schemas/Unions/NFTAssetOwnership.h"
 #include "Schemas/Inputs/AssetInput.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(AssetQueryGenerationTest,
-	"UBFEmergenceDemo.sdk_unreal_asset_register.Source.AssetRegister.Private.AssetQueryGenerationTest",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+								"UBFEmergenceDemo.sdk_unreal_asset_register.Source.AssetRegister.Private.AssetQueryGenerationTest",
+								EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool AssetQueryGenerationTest::RunTest(const FString& Parameters)
 {
 	const auto TokenId = TEXT("2227");
 	const auto CollectionId = TEXT("7668:root:17508");
 	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
-
-	AssetQuery->AddField(&FAsset::Id)
-		->AddField<FAsset>(&FAsset::Profiles)
-		->OnMember(&FAsset::Metadata)
-			->AddField(&FAssetMetadata::RawAttributes);
 	
-	FAssetConnection Input = FAssetConnection();
-	Input.Addresses = {TEXT("0xFFfffffF00000000000000000000000000000f59")};
+	AssetQuery->AddField(&FAsset::AssetType);
+	AssetQuery->OnMember(&FAsset::Ownership)->OnUnion<FNFTAssetOwnershipData>()
+		->OnMember(&FNFTAssetOwnershipData::Owner)
+				->AddField(&FAccount::Address);
 	
 	AssetQuery->OnMember(&FAsset::Links)
-	->OnUnion<FNFTAssetLinkData, FAssetLinkData>()
+	->OnUnion<FNFTAssetLinkData>()
 		->OnArray(&FNFTAssetLinkData::ChildLinks)
 			->AddField(&FLink::Path)
 			->OnMember(&FLink::Asset)
 				->AddField(&FAsset::CollectionId)
 				->AddField(&FAsset::TokenId);
 	
-	AssetQuery->OnMember(&FAsset::Links)->OnUnion<FSFTAssetLinkData, FAssetLinkData>()
-			->OnArray(&FSFTAssetLinkData::ParentLinks)->AddArgument(Input)->AddField(&FAsset::Id);
-	
 	FString ExpectedQueryString = R"(
 	query {
-	 asset(tokenId:"2227",collectionId:"7668:root:17508") {
-	   id
-	   profiles
-	   metadata {
-	     rawAttributes
-	   }
-	   links {
-	     ... on NFTAssetLink {
-	       childLinks {
-	         path
-	         asset {
-	           collectionId
-			   tokenId
-	         }
-	       }
-	     }
-	     ... on SFTAssetLink {
-	       parentLinks(addresses:["0xFFfffffF00000000000000000000000000000f59"]) {
-	         id
-	       }
-	     }
-	   }
-	 }
+	  asset(tokenId:"2227",collectionId:"7668:root:17508") {
+	    assetType
+	    ownership {
+	      ... on NFTAssetOwnership {
+	        owner {
+	          address
+	        }
+	      }
+	    }
+	    links {
+	      ... on NFTAssetLink {
+	        childLinks {
+	          path
+	          asset {
+	            collectionId
+	            tokenId
+	          }
+	        }
+	      }
+	    }
+	  }
 	})";
 	
 	UE_LOG(LogTemp, Log, TEXT("Actual QueryString: %s"), *AssetQuery->GetQueryString());
@@ -78,34 +69,63 @@ bool AssetQueryGenerationTest::RunTest(const FString& Parameters)
 		FAsset OutAsset;
 		if (QueryStringUtil::TryGetModel(OutJson, OutAsset))
 		{
-			TestEqual(TEXT("Parsed Asset should contain asset-profile key in profiles map"),
-		OutAsset.Profiles.Contains(TEXT("asset-profile")), true);
+			UE_LOG(LogTemp, Log, TEXT("AssetType: %s "), *StaticEnum<EAssetType>()->GetNameStringByValue((int64)OutAsset.AssetType));
+			TestEqual("AssetType should match", OutAsset.AssetType, EAssetType::ERC721);
+	
+			FNFTAssetOwnershipData NFTOwnershipData;
+			if (QueryStringUtil::TryGetModelField<FAsset, FNFTAssetOwnershipData>(OutJson, TEXT("ownership"), NFTOwnershipData))
+			{
+				UNFTAssetOwnership* NFTOwnership = NewObject<UNFTAssetOwnership>();
+				NFTOwnership->Data = NFTOwnershipData;
 			
-			UE_LOG(LogTemp, Log, TEXT("Parsed AssetProfile: %s"), *OutAsset.Profiles.FindOrAdd(TEXT("asset-profile")));
-
-			FString MetadataJson;
-			auto MetadataJsonObject = FJsonObjectConverter::UStructToJsonObject(OutAsset.Metadata);
-			const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&MetadataJson);
-			FJsonSerializer::Serialize(MetadataJsonObject.ToSharedRef(), Writer);
-			UE_LOG(LogTemp, Log, TEXT("Parsed Metadata: %s"), *MetadataJson);
+				UE_LOG(LogTemp, Log, TEXT("OwnerAddress: %s "), *NFTOwnership->Data.Owner.Address);
+				TestEqual(TEXT("Owner Address should match"), NFTOwnership->Data.Owner.Address, TEXT("0xFFfffffF00000000000000000000000000000f59"));
+			}
+			else
+			{
+				AddError("Failed to get NFTOwnershipData!");
+			}
 			
 			FNFTAssetLinkData NFTAssetLinkData;
-			if (QueryStringUtil::TryGetModelField<FAsset, FNFTAssetLinkData>(OutJson, TEXT("links"), NFTAssetLinkData))
+			const bool bGotLinks = QueryStringUtil::TryGetModelField<FAsset, FNFTAssetLinkData>(OutJson, TEXT("links"), NFTAssetLinkData);
+			if (!bGotLinks)
 			{
-				UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
-				NFTAssetLink->ChildLinks.Append(NFTAssetLinkData.ChildLinks);
+				AddError(TEXT("[GetAssetLinks] Failed to get NFTAssetLink Data!"));
+			}
+			
+			UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
+			NFTAssetLink->Data = NFTAssetLinkData;
+			
+			for (FLink& ChildLink : NFTAssetLink->Data.ChildLinks)
+			{
+				FString Path = ChildLink.Path;
+				int32 Index = 0;
+				if (ChildLink.Path.FindChar('#', Index))
+				{
+					Path = ChildLink.Path.Mid(Index + 1);
+					Path = Path.Replace(TEXT("_accessory"), TEXT(""));
+				}
 				
-				for (auto ChildLink : NFTAssetLink->ChildLinks)
+				ChildLink.Path = Path;
+			}
+			
+			OutAsset.LinkWrapper.Links = NFTAssetLink;
+			
+			if (auto ParsedLink = Cast<UNFTAssetLink>(OutAsset.LinkWrapper.Links))
+			{
+				for (auto ChildLink : ParsedLink->Data.ChildLinks)
 				{
 					UE_LOG(LogTemp, Log, TEXT("ChildLink Path: %s TokenId: %s CollectionId: %s"), *ChildLink.Path, *ChildLink.Asset.TokenId, *ChildLink.Asset.CollectionId);
+					AddErrorIfFalse(!ChildLink.Path.StartsWith(TEXT("http")),
+						FString::Printf(TEXT("Parsed ChildLink Path should have correct format. Actual: %s"), *ChildLink.Path));
 				}
 			}
 			else
 			{
-				AddError("Failed to get NFTAssetLink Data!");
+				AddError(TEXT("Failed to cast to UNFTAssetLink!"));
 			}
 		}
-			else
+		else
 		{
 			AddError(FString::Printf(TEXT("Failed to get Asset Object from Json: %s!"), *OutJson));
 		}
@@ -113,7 +133,7 @@ bool AssetQueryGenerationTest::RunTest(const FString& Parameters)
 	});
 
 	const double StartTime = FPlatformTime::Seconds();
-	while (!bHttpRequestCompleted && FPlatformTime::Seconds() - StartTime < 5.0)
+	while (!bHttpRequestCompleted && FPlatformTime::Seconds() - StartTime < 6.0)
 	{
 		FPlatformProcess::Sleep(0.01f); // Sleep to avoid freezing the main thread
 	}

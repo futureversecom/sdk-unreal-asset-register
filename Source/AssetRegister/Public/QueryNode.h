@@ -212,8 +212,8 @@ public:
 	 * @tparam TDerived The derived (union) type.
 	 * @return The query node for the union subtype.
 	 */
-	template<typename TDerived, typename TParent>
-	requires std::is_base_of_v<TParent, TDerived> && std::is_same_v<TParent, TModel>
+	template<typename TDerived>
+	requires std::is_base_of_v<TModel, TDerived>
 	FQueryNode<std::remove_pointer_t<TDerived>>* OnUnion()
 	{
 		using Derived = std::remove_pointer_t<TDerived>;

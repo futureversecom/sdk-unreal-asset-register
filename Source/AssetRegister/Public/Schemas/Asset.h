@@ -1,19 +1,10 @@
 #pragma once
-#include "AssetLink.h"
 #include "JsonObjectWrapper.h"
+#include "Schema.h"
+#include "Enums/AssetType.h"
+#include "Unions/AssetOwnership.h"
+#include "Unions/AssetLink.h"
 #include "Asset.generated.h"
-
-class UAssetLink;
-
-// Wrapper struct for holding UAssetLink
-USTRUCT(BlueprintType)
-struct FAssetLinkWrapper
-{
-	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere)
-	UAssetLink* Links;
-};
 
 USTRUCT(BlueprintType)
 struct FCollection
@@ -73,31 +64,43 @@ USTRUCT(BlueprintType, Blueprintable, meta=(QueryName = "asset"))
 struct FAsset
 {
 	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
-	FString Id;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "collectionId"))
-	FString CollectionId;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "tokenId"))
-	FString TokenId;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "assetType"))
+	EAssetType AssetType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "collection"))
 	FCollection Collection;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "collectionId"))
+	FString CollectionId;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
+	FString Id;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAssetLinkWrapper LinkWrapper;
 
 	UPROPERTY(meta=(QueryName = "links"))
 	FAssetLinkData Links;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "metadata"))
+	FAssetMetadata Metadata;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FAssetOwnershipWrapper OwnershipWrapper;
+
+	UPROPERTY(meta=(QueryName = "ownership"))
+	FAssetOwnershipData Ownership;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "profiles"))
 	TMap<FString, FString> Profiles;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "metadata"))
-	FAssetMetadata Metadata;
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "schema"))
+	FSchema Schema;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "tokenId"))
+	FString TokenId;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FJsonObjectWrapper OriginalJsonData;
 };

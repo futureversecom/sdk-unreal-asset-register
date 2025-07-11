@@ -12,6 +12,7 @@
 #include "Schemas/Unions/AssetLink.h"
 #include "Schemas/Unions/NFTAssetLink.h"
 #include "Schemas/Inputs/AssetInput.h"
+#include "Schemas/Unions/NFTAssetOwnership.h"
 
 void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, const FString& CollectionId,
 	const FGetJsonCompleted& OnCompleted)
@@ -20,25 +21,20 @@ void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, cons
 
 	AssetQuery->AddField(&FAsset::Id)
 		->AddField<FAsset>(&FAsset::Profiles);
-	
-	SendRequest(AssetQuery->GetQueryString()).Next([OnCompleted, TokenId, CollectionId](const FString& OutJson)
+
+	MakeAssetQuery(AssetQuery->GetQueryJsonString()).Next([OnCompleted, TokenId, CollectionId]
+		(const FLoadAssetResult& Result)
 	{
-		if (OutJson.IsEmpty())
+		FAsset Asset = Result.Value;
+
+		if (!Result.bSuccess)
 		{
 			UE_LOG(LogAssetRegister, Warning, TEXT("[UGetAssetProfile] failed to load remote AssetProfile for %s:%s"), *CollectionId, *TokenId);
-			OnCompleted.ExecuteIfBound(false, TEXT(""));
-			return;
 		}
-		
-		FAsset OutAsset;
-		if (!QueryStringUtil::TryGetModel(OutJson, OutAsset))
-		{
-			UE_LOG(LogAssetRegister, Error, TEXT("Failed to get Asset Object from Json: %s!"), *OutJson);
-			OnCompleted.ExecuteIfBound(false, TEXT(""));
-		}
-		
-		OnCompleted.ExecuteIfBound(OutAsset.Profiles.Contains(TEXT("asset-profile")),
-				OutAsset.Profiles.FindOrAdd(TEXT("asset-profile")));
+
+		const FString AssetProfileKey = TEXT("asset-profile");
+		const FString AssetProfileURI = Asset.Profiles.Contains(AssetProfileKey) ? Asset.Profiles[AssetProfileKey] : TEXT("");
+		OnCompleted.ExecuteIfBound(Asset.Profiles.Contains(AssetProfileKey),AssetProfileURI);
 	});
 }
 
@@ -46,43 +42,40 @@ TFuture<FLoadJsonResult> UAssetRegisterQueryingLibrary::GetAssetProfile(const FS
 	const FString& CollectionId)
 {
 	TSharedPtr<TPromise<FLoadJsonResult>> Promise = MakeShareable(new TPromise<FLoadJsonResult>());
-	TFuture<FLoadJsonResult> Future = Promise->GetFuture();
 	
 	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 
 	AssetQuery->AddField<FAsset>(&FAsset::Profiles);
 	
-	SendRequest(AssetQuery->GetQueryString()).Next([Promise, TokenId, CollectionId](const FString& OutJson)
+	MakeAssetQuery(AssetQuery->GetQueryJsonString()).Next([Promise, TokenId, CollectionId]
+	(const FLoadAssetResult& Result)
 	{
-		auto Result = FLoadJsonResult();
-		if (OutJson.IsEmpty())
+		FAsset Asset = Result.Value;
+		
+		auto OutResult = FLoadJsonResult();
+		
+		if (!Result.bSuccess)
 		{
 			UE_LOG(LogAssetRegister, Warning, TEXT("[UGetAssetProfile] failed to load remote AssetProfile for %s:%s"), *CollectionId, *TokenId);
-			Result.SetFailure();
-			Promise->SetValue(Result);
+			OutResult.SetFailure();
+			Promise->SetValue(OutResult);
+			return;
 		}
 		
-		FAsset OutAsset;
-		if (!QueryStringUtil::TryGetModel(OutJson, OutAsset))
+		const FString AssetProfileKey = TEXT("asset-profile");
+		if (Asset.Profiles.Contains(AssetProfileKey))
 		{
-			UE_LOG(LogAssetRegister, Error, TEXT("Failed to get Asset Object from Json: %s!"), *OutJson);
-			Result.SetFailure();
-			Promise->SetValue(Result);
-		}
-		
-		if (OutAsset.Profiles.Contains(TEXT("asset-profile")))
-		{
-			Result.SetResult(OutAsset.Profiles.FindOrAdd(TEXT("asset-profile")));
+			OutResult.SetResult(Asset.Profiles[AssetProfileKey]);
 		}
 		else
 		{
-			Result.SetFailure();
+			OutResult.SetFailure();
 		}
 
-		Promise->SetValue(Result);
+		Promise->SetValue(OutResult);
 	});
 
-	return Future;
+	return Promise->GetFuture();
 }
 
 void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const FString& CollectionId,
@@ -97,50 +90,24 @@ void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const 
 				->AddField(&FAsset::CollectionId)
 				->AddField(&FAsset::TokenId);
 	
-	SendRequest(AssetQuery->GetQueryString()).Next([OnCompleted, TokenId, CollectionId](const FString& OutJson)
+	MakeAssetQuery(AssetQuery->GetQueryJsonString()).Next([OnCompleted, TokenId, CollectionId]
+	(const FLoadAssetResult& Result)
 	{
-		if (OutJson.IsEmpty())
+		if (!Result.bSuccess)
 		{
 			UE_LOG(LogAssetRegister, Warning, TEXT("[UGetAssetProfile] failed to load remote AssetProfile for %s:%s"), *CollectionId, *TokenId);
 			OnCompleted.ExecuteIfBound(false, FAsset());
 			return;
 		}
 		
-		FAsset OutAsset;
-		const bool bGotModel = QueryStringUtil::TryGetModel(OutJson, OutAsset);
-		if (!bGotModel)
-		{
-			UE_LOG(LogAssetRegister, Error, TEXT("Failed to get Asset Object from Json: %s!"), *OutJson);
-			OnCompleted.ExecuteIfBound(false, OutAsset);
-			return;
-		}
-		
-		FNFTAssetLinkData NFTAssetLinkData;
-		const bool bGotLinks = QueryStringUtil::TryGetModelField<FAsset, FNFTAssetLinkData>(OutJson, TEXT("links"), NFTAssetLinkData);
-		if (!bGotLinks)
+		FAsset OutAsset = Result.Value;
+		auto Links = Cast<UNFTAssetLink>(OutAsset.LinkWrapper.Links);
+		if (!Links)
 		{
 			UE_LOG(LogAssetRegister, Error, TEXT("[GetAssetLinks] Failed to get NFTAssetLink Data!"));
 			OnCompleted.ExecuteIfBound(false, OutAsset);
+			return;
 		}
-		
-		UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
-		NFTAssetLink->Data = NFTAssetLinkData;
-		
-		for (FLink& ChildLink : NFTAssetLinkData.ChildLinks)
-		{
-			FString Path = ChildLink.Path;
-			int32 Index = 0;
-			if (ChildLink.Path.FindChar('#', Index))
-			{
-				Path = ChildLink.Path.Mid(Index + 1);
-				Path = Path.Replace(TEXT("_accessory"), TEXT(""));
-			}
-			
-			ChildLink.Path = Path;
-			NFTAssetLink->Data.ChildLinks.Add(ChildLink);
-		}
-		
-		OutAsset.LinkWrapper.Links = NFTAssetLink;
 		
 		OnCompleted.ExecuteIfBound(true, OutAsset);
 	});
@@ -160,55 +127,31 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::GetAssetLinks(const FSt
 			->OnMember(&FLink::Asset)
 				->AddField(&FAsset::CollectionId)
 				->AddField(&FAsset::TokenId);
-	
-	SendRequest(AssetQuery->GetQueryString()).Next([Promise, TokenId, CollectionId](const FString& OutJson)
+
+	MakeAssetQuery(AssetQuery->GetQueryJsonString()).Next([Promise, TokenId, CollectionId]
+	(const FLoadAssetResult& Result)
 	{
-		auto Result = FLoadAssetResult();
-		if (OutJson.IsEmpty())
+		auto OutResult = FLoadAssetResult();
+		if (!Result.bSuccess)
 		{
 			UE_LOG(LogAssetRegister, Warning, TEXT("[UGetAssetProfile] failed to load remote AssetProfile for %s:%s"), *CollectionId, *TokenId);
-			Result.SetFailure();
-			Promise->SetValue(Result);
+			OutResult.SetFailure();
+			Promise->SetValue(OutResult);
+			return;
 		}
 		
-		FAsset OutAsset;
-		const bool bGotModel = QueryStringUtil::TryGetModel(OutJson, OutAsset);
-		if (!bGotModel)
-		{
-			UE_LOG(LogAssetRegister, Error, TEXT("Failed to get Asset Object from Json: %s!"), *OutJson);
-			Result.SetFailure();
-			Promise->SetValue(Result);
-		}
-		
-		FNFTAssetLinkData NFTAssetLinkData;
-		const bool bGotLinks = QueryStringUtil::TryGetModelField<FAsset, FNFTAssetLinkData>(OutJson, TEXT("links"), NFTAssetLinkData);
-		if (!bGotLinks)
+		FAsset OutAsset = Result.Value;
+		auto Links = Cast<UNFTAssetLink>(OutAsset.LinkWrapper.Links);
+		if (!Links)
 		{
 			UE_LOG(LogAssetRegister, Error, TEXT("[GetAssetLinks] Failed to get NFTAssetLink Data!"));
-			Result.SetFailure();
-			Promise->SetValue(Result);
+			OutResult.SetFailure();
+			Promise->SetValue(OutResult);
+			return;
 		}
 		
-		UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
-		NFTAssetLink->Data = NFTAssetLinkData;
-		
-		for (FLink& ChildLink : NFTAssetLink->Data.ChildLinks)
-		{
-			FString Path = ChildLink.Path;
-			int32 Index = 0;
-			if (ChildLink.Path.FindChar('#', Index))
-			{
-				Path = ChildLink.Path.Mid(Index + 1);
-				Path = Path.Replace(TEXT("_accessory"), TEXT(""));
-			}
-				
-			ChildLink.Path = Path;
-		}
-		
-		OutAsset.LinkWrapper.Links = NFTAssetLink;
-		
-		Result.SetResult(OutAsset);
-		Promise->SetValue(Result);
+		OutResult.SetResult(OutAsset);
+		Promise->SetValue(OutResult);
 	});
 
 	return Future;
@@ -232,33 +175,17 @@ void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInpu
 			->AddField(&FCollection::Location)
 			->AddField(&FCollection::Name);
 	
-	SendRequest(AssetsQuery->GetQueryString()).Next([OnCompleted](const FString& OutJson)
+	MakeAssetQuery(AssetsQuery->GetQueryJsonString()).Next([OnCompleted]
+	(const FLoadAssetsResult& Result)
 	{
-		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(OutJson);
-		TSharedPtr<FJsonObject> RootObject;
-		FJsonSerializer::Deserialize(Reader, RootObject);
-
-		TArray<TSharedPtr<FJsonValue>> AssetNodes;
-		QueryStringUtil::FindAllFieldsRecursively(RootObject, TEXT("node"), AssetNodes);
-
-		FAssets Assets;
-		for (const auto& AssetNode : AssetNodes)
+		if (!Result.bSuccess)
 		{
-			auto AssetNodeObject = AssetNode->AsObject();
-			FAsset Asset;
-
-			if (!FJsonObjectConverter::JsonObjectToUStruct(AssetNodeObject.ToSharedRef(), &Asset))
-			{
-				UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::GetAssets Failed to convert Json to Asset!"));
-				LogJsonString(AssetNodeObject);
-				continue;
-			}
-			
-			Asset.OriginalJsonData.JsonObject = AssetNodeObject;
-			FAssetEdge Edge;
-			Edge.Node = Asset;
-			Assets.Edges.Add(Edge);
+			UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::GetAssets failed to get assets"));
+			OnCompleted.ExecuteIfBound(false, FAssets());
+			return;
 		}
+		
+		FAssets Assets = Result.Value;
 		OnCompleted.ExecuteIfBound(true, Assets);
 	});
 }
@@ -271,11 +198,18 @@ TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::GetAssets(const FAsset
 	const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)->OnMember(&FAssetEdge::Node);
 	AssetNode->AddField(&FAsset::TokenId)
 			->AddField(&FAsset::CollectionId)
+			->AddField(&FAsset::AssetType)
 			->AddField(&FAsset::Profiles);
+	
 	AssetNode->OnMember(&FAsset::Metadata)
 			->AddField(&FAssetMetadata::Properties)
 			->AddField(&FAssetMetadata::Attributes)
 			->AddField(&FAssetMetadata::RawAttributes);
+
+	AssetNode->OnMember(&FAsset::Ownership)
+			->OnUnion<FNFTAssetOwnershipData>()
+				->OnMember(&FNFTAssetOwnershipData::Owner)
+				->AddField(&FAccount::Address);
 	
 	AssetNode->OnMember(&FAsset::Collection)
 			->AddField(&FCollection::ChainId)
@@ -283,37 +217,149 @@ TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::GetAssets(const FAsset
 			->AddField(&FCollection::Location)
 			->AddField(&FCollection::Name);
 	
-	SendRequest(AssetsQuery->GetQueryString()).Next([Promise](const FString& OutJson)
+	MakeAssetQuery(AssetsQuery->GetQueryJsonString()).Next([Promise]
+	(const FLoadAssetsResult& Result)
 	{
-		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(OutJson);
-		TSharedPtr<FJsonObject> RootObject;
-		FJsonSerializer::Deserialize(Reader, RootObject);
-
-		TArray<TSharedPtr<FJsonValue>> AssetNodes;
-		QueryStringUtil::FindAllFieldsRecursively(RootObject, TEXT("node"), AssetNodes);
-
-		FAssets Assets;
-		for (const auto& AssetNode : AssetNodes)
+		if (!Result.bSuccess)
 		{
-			auto AssetNodeObject = AssetNode->AsObject();
-			FAsset Asset;
-
-			if (!FJsonObjectConverter::JsonObjectToUStruct(AssetNodeObject.ToSharedRef(), &Asset))
-			{
-				UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::GetAssets Failed to convert Json to Asset!"));
-				LogJsonString(AssetNodeObject);
-				continue;
-			}
-				
-			Asset.OriginalJsonData.JsonObject = AssetNodeObject;
-			FAssetEdge Edge;
-			Edge.Node = Asset;
-			Assets.Edges.Add(Edge);
+			UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::GetAssets failed to get assets"));
+			auto OutResult = FLoadAssetsResult();
+			OutResult.SetFailure();
+			Promise->SetValue(OutResult);
+			return;
 		}
-		auto OutResult = FLoadAssetsResult();
-		OutResult.SetResult(Assets);
-		Promise->SetValue(OutResult);
+		Promise->SetValue(Result);
 	});
+
+	return Promise->GetFuture();
+}
+
+TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::MakeAssetsQuery(const FString& QueryContent)
+{
+	TSharedPtr<TPromise<FLoadAssetsResult>> Promise = MakeShared<TPromise<FLoadAssetsResult>>();
+	
+	FString URL;
+	const UAssetRegisterSettings* Settings = GetDefault<UAssetRegisterSettings>();
+	check(Settings);
+	
+	if (Settings)
+	{
+		URL = Settings->AssetRegisterURL;
+	}
+	else
+	{
+		UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::MakeAssetsQuery UAssetRegisterSettings was null, returning empty string"));
+		auto Result = FLoadAssetsResult();
+		Result.SetFailure();
+		Promise->SetValue(Result);
+	}
+
+	const TSharedRef<IHttpRequest> Request = FHttpModule::Get().CreateRequest();
+	
+	Request->SetURL(URL);
+	Request->SetVerb(TEXT("POST"));
+	Request->SetHeader("content-type", "application/json");
+	
+	UE_LOG(LogAssetRegister, Verbose, TEXT("UAssetRegisterQueryingLibrary::MakeAssetsQuery Sending Request. URL: %s Content: %s"), *URL, *QueryContent);
+	Request->SetContentAsString(QueryContent);
+	Request->SetTimeout(60);
+
+	auto RequestCallback = [Promise]
+	(FHttpRequestPtr Request, const FHttpResponsePtr& Response, bool bWasSuccessful) mutable
+	{
+		auto Result = FLoadAssetsResult();
+		if (Response == nullptr)
+		{
+			Result.SetFailure();
+			Promise->SetValue(Result);
+			return;
+		}
+		if (!bWasSuccessful || !Response.IsValid())
+		{
+			Result.SetFailure();
+			Promise->SetValue(Result);
+			return;
+		}
+		if (Response->GetContentAsString().IsEmpty())
+		{
+			Result.SetFailure();
+			Promise->SetValue(Result);
+			return;
+		}
+	
+		HandleAssetsResponse(Response->GetContentAsString()).Next([Promise](const FLoadAssetsResult& LoadResult)
+		{
+			Promise->SetValue(LoadResult);
+		});
+	};
+	
+	Request->OnProcessRequestComplete().BindLambda(RequestCallback);
+	Request->ProcessRequest();
+
+	return Promise->GetFuture();
+}
+
+TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::MakeAssetQuery(const FString& QueryContent)
+{
+	TSharedPtr<TPromise<FLoadAssetResult>> Promise = MakeShared<TPromise<FLoadAssetResult>>();
+	
+	FString URL;
+	const UAssetRegisterSettings* Settings = GetDefault<UAssetRegisterSettings>();
+	check(Settings);
+	
+	if (Settings)
+	{
+		URL = Settings->AssetRegisterURL;
+	}
+	else
+	{
+		UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::MakeAssetQuery UAssetRegisterSettings was null, returning empty string"));
+		auto Result = FLoadAssetResult();
+		Result.SetFailure();
+		Promise->SetValue(Result);
+	}
+
+	const TSharedRef<IHttpRequest> Request = FHttpModule::Get().CreateRequest();
+	
+	Request->SetURL(URL);
+	Request->SetVerb(TEXT("POST"));
+	Request->SetHeader("content-type", "application/json");
+	
+	UE_LOG(LogAssetRegister, Verbose, TEXT("UAssetRegisterQueryingLibrary::MakeAssetQuery Sending Request. URL: %s Content: %s"), *URL, *QueryContent);
+	Request->SetContentAsString(QueryContent);
+	Request->SetTimeout(60);
+
+	auto RequestCallback = [Promise]
+	(FHttpRequestPtr Request, const FHttpResponsePtr& Response, bool bWasSuccessful) mutable
+	{
+		auto Result = FLoadAssetResult();
+		if (Response == nullptr)
+		{
+			Result.SetFailure();
+			Promise->SetValue(Result);
+			return;
+		}
+		if (!bWasSuccessful || !Response.IsValid())
+		{
+			Result.SetFailure();
+			Promise->SetValue(Result);
+			return;
+		}
+		if (Response->GetContentAsString().IsEmpty())
+		{
+			Result.SetFailure();
+			Promise->SetValue(Result);
+			return;
+		}
+	
+		HandleAssetResponse(Response->GetContentAsString()).Next([Promise](const FLoadAssetResult& LoadResult)
+		{
+			Promise->SetValue(LoadResult);
+		});
+	};
+	
+	Request->OnProcessRequestComplete().BindLambda(RequestCallback);
+	Request->ProcessRequest();
 
 	return Promise->GetFuture();
 }
@@ -379,13 +425,127 @@ TFuture<FString> UAssetRegisterQueryingLibrary::SendRequest(const FString& RawCo
 	return Future;
 }
 
-void UAssetRegisterQueryingLibrary::LogJsonString(const TSharedPtr<FJsonObject>& JsonObject)
+TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::HandleAssetsResponse(const FString& ResponseJson)
 {
-	FString JsonString;
-
-	FJsonObjectWrapper ObjectWrapper;
-	ObjectWrapper.JsonObject = JsonObject;
-	ObjectWrapper.JsonObjectToString(JsonString);
+	UE_LOG(LogAssetRegister, Verbose, TEXT("UAssetRegisterQueryingLibrary::HandleAssetsResponse Attempting to handle Response: %s"), *ResponseJson);
 	
-	UE_LOG(LogAssetRegister, Warning, TEXT("Used JsonString: %s"), *JsonString);
+	TSharedPtr<TPromise<FLoadAssetsResult>> Promise = MakeShared<TPromise<FLoadAssetsResult>>();
+
+	FAssets OutAssets;
+	if (!QueryStringUtil::TryGetModel(ResponseJson, OutAssets))
+	{
+		UE_LOG(LogAssetRegister, Error, TEXT("Failed to get Assets Object from Json: %s!"), *ResponseJson);
+		auto OutResult = FLoadAssetsResult();
+		OutResult.SetFailure();
+		Promise->SetValue(OutResult);
+		return Promise->GetFuture();
+	}
+	
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseJson);
+	TSharedPtr<FJsonObject> RootObject;
+	FJsonSerializer::Deserialize(Reader, RootObject);
+
+	TArray<TSharedPtr<FJsonValue>> AssetNodes;
+	QueryStringUtil::FindAllFieldsRecursively(RootObject, TEXT("node"), AssetNodes);
+	
+	TArray<TFuture<FLoadAssetResult>> LoadAssetFutures;
+	TSharedPtr<TArray<FAsset>> LoadedAssets = MakeShared<TArray<FAsset>>();
+	
+	for (const auto& AssetNode : AssetNodes)
+	{
+		auto AssetNodeObject = AssetNode->AsObject();
+
+		// wrap json under "asset" field
+		TSharedRef<FJsonObject> AssetBody = MakeShared<FJsonObject>();
+		AssetBody->SetObjectField("asset", AssetNodeObject);
+		
+		FString AssetJsonString;
+		FJsonObjectWrapper ObjectWrapper;
+		ObjectWrapper.JsonObject = AssetBody;
+		ObjectWrapper.JsonObjectToString(AssetJsonString);
+		
+		TFuture<FLoadAssetResult> LoadAssetFuture = HandleAssetResponse(AssetJsonString).Next(
+		[LoadedAssets, AssetNodeObject](const FLoadAssetResult& AssetResult)
+		{
+			if (AssetResult.bSuccess)
+			{
+				auto Asset = AssetResult.Value;
+				Asset.OriginalJsonData.JsonObject = AssetNodeObject;
+				LoadedAssets->Add(Asset);
+			}
+
+			return AssetResult;
+		});
+		LoadAssetFutures.Add(MoveTemp(LoadAssetFuture));
+	}
+	
+	WhenAll(LoadAssetFutures).Next([Promise, &OutAssets, LoadedAssets](const TArray<FLoadAssetResult>& Results)
+	{
+		for (const FAsset& Asset : *LoadedAssets)
+		{
+			FAssetEdge Edge;
+			Edge.Node = Asset;
+			OutAssets.Edges.Add(Edge);
+		}
+		auto OutResult = FLoadAssetsResult();
+		OutResult.SetResult(OutAssets);
+		Promise->SetValue(OutResult);
+	});
+	
+	return Promise->GetFuture();
+}
+
+TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::HandleAssetResponse(const FString& ResponseJson)
+{
+	UE_LOG(LogAssetRegister, Verbose, TEXT("UAssetRegisterQueryingLibrary::HandleAssetResponse Attempting to handle Response: %s"), *ResponseJson);
+	
+	TSharedPtr<TPromise<FLoadAssetResult>> Promise = MakeShared<TPromise<FLoadAssetResult>>();
+	auto Result = FLoadAssetResult();
+
+	FAsset OutAsset;
+	if (!QueryStringUtil::TryGetModel(ResponseJson, OutAsset))
+	{
+		UE_LOG(LogAssetRegister, Error, TEXT("Failed to get Asset Object from Json: %s!"), *ResponseJson);
+		Result.SetFailure();
+		Promise->SetValue(Result);
+		return Promise->GetFuture();
+	}
+
+	// manually try to get FNFTAssetOwnershipData
+	FNFTAssetOwnershipData NFTOwnershipData;
+	if (QueryStringUtil::TryGetModelField<FAsset>(ResponseJson, TEXT("ownership"), NFTOwnershipData))
+	{
+		UNFTAssetOwnership* NFTOwnership = NewObject<UNFTAssetOwnership>();
+		NFTOwnership->Data = NFTOwnershipData;
+		
+		OutAsset.OwnershipWrapper.Ownership = NFTOwnership;
+	}
+	
+	// manually try to get FNFTAssetLinkData
+	FNFTAssetLinkData NFTAssetLinkData;
+	if (QueryStringUtil::TryGetModelField<FAsset>(ResponseJson, TEXT("links"), NFTAssetLinkData))
+	{
+		UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
+		NFTAssetLink->Data = NFTAssetLinkData;
+				
+		for (FLink& ChildLink : NFTAssetLink->Data.ChildLinks)
+		{
+			FString Path = ChildLink.Path;
+			int32 Index = 0;
+			if (ChildLink.Path.FindChar('#', Index))
+			{
+				Path = ChildLink.Path.Mid(Index + 1);
+				Path = Path.Replace(TEXT("_accessory"), TEXT(""));
+			}
+					
+			ChildLink.Path = Path;
+		}
+				
+		OutAsset.LinkWrapper.Links = NFTAssetLink;
+	}
+
+	Result.SetResult(OutAsset);
+	Promise->SetValue(Result);
+	
+	return Promise->GetFuture();
 }

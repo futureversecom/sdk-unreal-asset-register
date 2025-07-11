@@ -72,11 +72,25 @@ public:
 	}
 	
 	/**
-	 * Returns the complete GraphQL query string starting from this node.
+	 * Returns the complete raw GraphQL query string starting from this node.
 	 */
 	FString GetQueryString()
 	{
 		return "query {\n" + SerializeNode(AsShared(), 0) + "\n}";
+	}
+
+	/**
+	 * Returns the complete GraphQL query json string.
+	 */
+	FString GetQueryJsonString()
+	{
+		FString OutJson;
+		TSharedRef<FJsonObject> JsonBody = MakeShared<FJsonObject>();
+		JsonBody->SetStringField("query", GetQueryString());
+	
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutJson);
+		FJsonSerializer::Serialize(JsonBody, Writer);
+		return OutJson;
 	}
 
 protected:

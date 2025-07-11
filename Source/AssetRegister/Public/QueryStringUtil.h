@@ -117,77 +117,6 @@ namespace QueryStringUtil
 		return ClassName;
 	}
 	
-	template<typename TModel>
-	bool TryGetModel(const FString& JsonString, TModel& OutStruct)
-	{
-		TSharedPtr<FJsonObject> RootObject;
-		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
-	
-		if (!FJsonSerializer::Deserialize(Reader, RootObject) || !RootObject.IsValid())
-		{
-			UE_LOG(LogAssetRegister, Error, TEXT("Failed to parse JSON string."));
-			return false;
-		}
-	
-		const TSharedPtr<FJsonObject>* DataObject;
-		if (!RootObject->TryGetObjectField(TEXT("data"), DataObject))
-		{
-			const TSharedPtr<FJsonObject>* TargetObject;
-			if (RootObject->TryGetObjectField(GetQueryName<TModel>(), TargetObject))
-			{
-				return FJsonObjectConverter::JsonObjectToUStruct<TModel>(TargetObject->ToSharedRef(), &OutStruct);
-			}
-			
-			UE_LOG(LogAssetRegister, Error, TEXT("Missing 'data' field in the response."));
-			return false;
-		}
-		
-		const TSharedPtr<FJsonObject>* TargetObject;
-		if (!(*DataObject)->TryGetObjectField(GetQueryName<TModel>(), TargetObject))
-		{
-			UE_LOG(LogAssetRegister, Error, TEXT("Missing target field '%s' in 'data'."), *GetQueryName<TModel>());
-			return false;
-		}
-	
-		return FJsonObjectConverter::JsonObjectToUStruct<TModel>(TargetObject->ToSharedRef(), &OutStruct);
-	}
-
-	template<typename TModel, typename TStruct>
-	bool TryGetModelField(const FString& JsonString, const FString& TargetFieldName, TStruct& OutStruct)
-	{
-		TSharedPtr<FJsonObject> RootObject;
-		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
-	
-		if (!FJsonSerializer::Deserialize(Reader, RootObject) || !RootObject.IsValid())
-		{
-			UE_LOG(LogAssetRegister, Error, TEXT("Failed to parse JSON string."));
-			return false;
-		}
-	
-		const TSharedPtr<FJsonObject>* DataObject;
-		if (!RootObject->TryGetObjectField(TEXT("data"), DataObject))
-		{
-			UE_LOG(LogAssetRegister, Error, TEXT("Missing 'data' field in the response."));
-			return false;
-		}
-		
-		const TSharedPtr<FJsonObject>* ModelObject;
-		if (!(*DataObject)->TryGetObjectField(GetQueryName<TModel>(), ModelObject))
-		{
-			UE_LOG(LogAssetRegister, Error, TEXT("Missing model field '%s' in 'data'."), *GetQueryName<TModel>());
-			return false;
-		}
-		
-		const TSharedPtr<FJsonObject>* FieldObject;
-		if (!(*ModelObject)->TryGetObjectField(TargetFieldName, FieldObject))
-		{
-			UE_LOG(LogAssetRegister, Error, TEXT("Missing target field '%s' in '%s'."), *TargetFieldName, *GetQueryName<TModel>());
-			return false;
-		}
-
-		return FJsonObjectConverter::JsonObjectToUStruct<TStruct>(FieldObject->ToSharedRef(), &OutStruct);
-	}
-
 	template<typename TModel, typename TStruct>
 	bool TryGetModelField(const TSharedPtr<FJsonObject>& JsonObject, const FString& TargetFieldName, TStruct& OutStruct)
 	{
@@ -295,5 +224,49 @@ namespace QueryStringUtil
 		}
 
 		return nullptr;
+	}
+
+	template<typename TModel>
+	bool TryGetModel(const FString& JsonString, TModel& OutStruct)
+	{
+		TSharedPtr<FJsonObject> RootObject;
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
+
+		const FString ModelName = GetQueryName<TModel>();
+		if (!FJsonSerializer::Deserialize(Reader, RootObject) || !RootObject.IsValid())
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("Failed to deserialize string: %s."), *JsonString);
+			return false;
+		}
+		const TSharedPtr<FJsonObject> TargetObject = FindFieldRecursively(RootObject, ModelName)->AsObject();
+		if (!TargetObject)
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("Failed to find field '%s' in Json string: %s"), *ModelName, *JsonString);
+			return false;
+		}
+		
+		return FJsonObjectConverter::JsonObjectToUStruct<TModel>(TargetObject.ToSharedRef(), &OutStruct);
+	}
+
+	template<typename TModel, typename TStruct>
+	bool TryGetModelField(const FString& JsonString, const FString& TargetFieldName, TStruct& OutStruct)
+	{
+		TSharedPtr<FJsonObject> RootObject;
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
+	
+		if (!FJsonSerializer::Deserialize(Reader, RootObject) || !RootObject.IsValid())
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("Failed to parse JSON string."));
+			return false;
+		}
+		
+		const TSharedPtr<FJsonObject> TargetObject = FindFieldRecursively(RootObject, TargetFieldName)->AsObject();
+		if (!TargetObject)
+		{
+			UE_LOG(LogAssetRegister, Error, TEXT("Failed to find field '%s' in Json string: %s"), *TargetFieldName, *JsonString);
+			return false;
+		}
+
+		return FJsonObjectConverter::JsonObjectToUStruct<TStruct>(TargetObject.ToSharedRef(), &OutStruct);
 	}
 };

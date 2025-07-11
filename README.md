@@ -28,7 +28,7 @@ The endpoint URL can be changed in `Plugins/Futureverse Asset Register`
 
 ## 🔍 Querying Assets using Asset Register Querying Library
 ### Blueprint Example
-![image](https://github.com/user-attachments/assets/44fb43ae-28fd-4bea-94f7-d5afc4181cd4)
+<img width="1045" height="646" alt="image" src="https://github.com/user-attachments/assets/ecd6fdd8-0f55-4a9d-b2e0-60810a6fb38c" />
 
 ### C++ Example
 ```cpp

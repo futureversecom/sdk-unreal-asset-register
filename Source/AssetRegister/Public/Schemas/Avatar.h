@@ -3,7 +3,7 @@
 #include "Avatar.generated.h"
 
 USTRUCT(BlueprintType)
-struct FAvatar
+struct ASSETREGISTER_API FAvatar
 {
 	GENERATED_BODY()
 

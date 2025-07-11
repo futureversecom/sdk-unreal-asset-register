@@ -2,7 +2,7 @@
 #include "AssetLink.generated.h"
 
 USTRUCT()
-struct FAssetLinkData
+struct ASSETREGISTER_API FAssetLinkData
 {
 	GENERATED_BODY()
 };

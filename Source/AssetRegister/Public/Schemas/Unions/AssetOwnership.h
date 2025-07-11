@@ -6,7 +6,7 @@
 #include "AssetOwnership.generated.h"
 
 USTRUCT()
-struct FAssetOwnershipData
+struct ASSETREGISTER_API FAssetOwnershipData
 {
 	GENERATED_BODY()
 };

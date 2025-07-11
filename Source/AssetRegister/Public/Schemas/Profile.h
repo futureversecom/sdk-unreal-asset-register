@@ -5,7 +5,7 @@
 #include "Profile.generated.h"
 
 USTRUCT(BlueprintType)
-struct FProfile
+struct ASSETREGISTER_API FProfile
 {
 	GENERATED_BODY()
 

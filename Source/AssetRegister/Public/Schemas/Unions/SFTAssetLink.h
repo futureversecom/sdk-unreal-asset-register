@@ -9,7 +9,7 @@
 
 // data struct for USFTAssetLink so it can deserialized
 USTRUCT(BlueprintType, meta=(QueryName = "SFTAssetLink"))
-struct FSFTAssetLinkData : public FAssetLinkData
+struct ASSETREGISTER_API FSFTAssetLinkData : public FAssetLinkData
 {
 	GENERATED_BODY()
 

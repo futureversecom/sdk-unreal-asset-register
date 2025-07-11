@@ -4,7 +4,7 @@
 #include "Link.generated.h"
 
 USTRUCT(BlueprintType)
-struct FOffChainAsset
+struct ASSETREGISTER_API FOffChainAsset
 {
 	GENERATED_BODY()
 
@@ -28,7 +28,7 @@ struct FOffChainAsset
 };
 
 USTRUCT(BlueprintType)
-struct FLink
+struct ASSETREGISTER_API FLink
 {
 	GENERATED_BODY()
 	

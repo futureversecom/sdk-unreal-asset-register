@@ -4,7 +4,7 @@
 #include "SFTBalance.generated.h"
 
 USTRUCT(BlueprintType)
-struct FSFTBalance
+struct ASSETREGISTER_API FSFTBalance
 {
 	GENERATED_BODY()
 

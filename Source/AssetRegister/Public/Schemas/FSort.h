@@ -4,7 +4,7 @@
 #include "FSort.generated.h"
 
 USTRUCT(BlueprintType)
-struct FSort
+struct ASSETREGISTER_API FSort
 {
 	GENERATED_BODY()
 	

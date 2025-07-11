@@ -3,7 +3,7 @@
 #include "Schema.generated.h"
 
 USTRUCT(BlueprintType)
-struct FSchema
+struct ASSETREGISTER_API FSchema
 {
 	GENERATED_BODY()
 

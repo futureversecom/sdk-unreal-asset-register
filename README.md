@@ -10,6 +10,7 @@ This Unreal Engine plugin provides an API for creating and sending GraphQL reque
 ## ✨ Features
 - Blueprint Library containing common Asset Register GraphQL queries in both Blueprint and C++ accessible format
 - Includes custom strongly-typed query builder to detect errors in compile time and auto-completion
+- Handles deserializing polymorphic objects
 - Supports array fields, union types, and nested field selection
   
 ---
@@ -37,15 +38,15 @@ AssetConnectionInput.First = 1000;
 
 UAssetRegisterQueryingLibrary::GetAssets(AssetConnectionInput).Next([](const FLoadAssetsResult& Result)
 {
-  if (Result.bSuccess)
-  {
-    const FAssets Assets = Result.Value;
-    for (const FAssetEdge& AssetEdge : Assets.Edges)
-    {
-      const FAsset Asset = AssetEdge.Node;
-      // Process Asset
-    }
-  }
+	if (Result.bSuccess)
+	{
+		const FAssets Assets = Result.Value;
+		for (const FAssetEdge& AssetEdge : Assets.Edges)
+		{
+			const FAsset Asset = AssetEdge.Node;
+			// Process Asset
+		}
+	}
 });
 ```
 Note: this assets query has pre-configured fields. If you want to configure which fields to be included in the query, see [Making Custom Assets Query](#making-custom-assets-query) section below
@@ -63,11 +64,11 @@ const FString CollectionId = TEXT("7668:root:17508");
 
 UAssetRegisterQueryingLibrary::GetAssetProfile(TokenId, CollectionId).Next([](const FLoadJsonResult& Result)
 {
-  if (Result.bSuccess)
-  {
-    const FString ProfileURI = Result.Value;
-    // Process Response
-  }
+	if (Result.bSuccess)
+	{
+		const FString ProfileURI = Result.Value;
+		// Process Profile URI
+	}
 });
 ```
 
@@ -84,63 +85,68 @@ const FString CollectionId = TEXT("7668:root:17508");
 
 UAssetRegisterQueryingLibrary::GetAssetLinks(TokenId, CollectionId).Next([](const FLoadAssetResult& Result)
 {
-  const auto Asset = Result.Value;
-  if (const UNFTAssetLink* NFTAssetLink = Cast<UNFTAssetLink>(Asset.LinkWrapper.Links))
-  {
-    for (const FLink& ChildLink : NFTAssetLink->ChildLinks)
-    {
-      // Process response
-    }
-  }
+	const auto Asset = Result.Value;
+	if (const UNFTAssetLink* NFTAssetLink = Cast<UNFTAssetLink>(Asset.LinkWrapper.Links))
+	{
+		for (const FLink& ChildLink : NFTAssetLink->ChildLinks)
+		{
+			// Process Link
+		}
+	}
 });
 ```
 Note: `FAssetLinkWrapper` contains the actual UObject with data.
 
 ---
+## 🔧 Building and sending a Custom Query Step by Step
+
+1. Use `FAssetRegisterQueryBuilder` to crete either a Asset or Assets query.
+ 	- This returns either `FQueryNode<FAsset>` or `FQueryNode<FAssets>`
+	- Each query requires a different input. E.g. Asset query requires `FAssetInput` where as Assets query requires `FAssetConnection`
+3. Populate your input
+4. Populate your query with fields
+	- Use `AddField` to add field from your initial Schema Object e.g. `AssetNode->AddField(&FAsset::TokenId)`
+	- Use `OnMember` to add the member field of the Schema Object, then use `AddField` after to add its fields e.g. `AssetNode->OnMember(&FAsset::Metadata)->AddField(&FAssetMetadata::Properties)`
+	- Use `OnUnion` to specify the polymorphic member field of the Schema Object e.g. `AssetNode->OnMember(&FAsset::Links)->OnUnion<FNFTAssetLinkData>()`
+	- Use `OnArray` to add the member field of array type of the Schema Object e.g. `AssetQuery->OnMember(&FAsset::Links)->OnUnion<FNFTAssetLinkData>()->OnArray(&FNFTAssetLinkData::ChildLinks)`
+	- Use `AddArgument` to add argument to one of the fields e.g. `AssetQuery->OnMember(&FAsset::Links)->OnUnion<FSFTAssetLinkData>()->AddArgument(TEXT("addresses"), addresses)`
+5. Get the your query json string from the root query node e.g. `AssetQuery->GetQueryJsonString()` and send it to the `UAssetRegisterQueryingLibrary`.
+	- Highly recommend using `UAssetRegisterQueryingLibrary::MakeAssetQuery` or `UAssetRegisterQueryingLibrary::MakeAssetsQuery` so that you don't have to deal with deserializing polymorphic objects yourself. 
+	- You can still handle the response yourself by sending the http request yourself or use `UAssetRegisterQueryingLibrary::SendRequest`
+
+See below sections for examples
 
 ## 🔍 Making Custom Asset Query
 ### C++ Example
 ```cpp
 const auto TokenId = TEXT("2227");
 const auto CollectionId = TEXT("7668:root:17508");
-
-// create Asset Query
 auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 
-// Add custom fields here
-AssetQuery->AddField(&FAsset::Id)
-  ->AddField<FAsset>(&FAsset::Profiles)
-  ->OnMember(&FAsset::Metadata)
-    ->AddField(&FAssetMetadata::RawAttributes);
-	
-FAssetConnection Input = FAssetConnection();
-Input.Addresses = {TEXT("0xFFfffffF00000000000000000000000000000f59")};
-	
-AssetQuery->OnMember(&FAsset::Links)
-  ->OnUnion<FNFTAssetLinkData, FAssetLinkData>()
-    ->OnArray(&FNFTAssetLinkData::ChildLinks)
-      ->AddField(&FLink::Path)
-      ->OnMember(&FLink::Asset)
-        ->AddField(&FAsset::CollectionId)
-        ->AddField(&FAsset::TokenId);
-	
-AssetQuery->OnMember(&FAsset::Links)
-  ->OnUnion<FSFTAssetLinkData, FAssetLinkData>()
-    ->OnArray(&FSFTAssetLinkData::ParentLinks)->AddArgument(Input)
-      ->AddField(&FAsset::Id);
+AssetQuery->AddField(&FAsset::AssetType)->AddField(&FAsset::Profiles);
+AssetQuery->OnMember(&FAsset::Metadata)
+	->AddField(&FAssetMetadata::RawAttributes);
+AssetQuery->OnMember(&FAsset::Ownership)->OnUnion<FNFTAssetOwnershipData>()
+	->OnMember(&FNFTAssetOwnershipData::Owner)
+		->AddField(&FAccount::Address);
 
-UAssetRegisterQueryingLibrary::SendRequest(AssetsQuery->GetQueryString()).Next([](const FString& OutJson)
+AssetQuery->OnMember(&FAsset::Links)
+->OnUnion<FNFTAssetLinkData>()
+	->OnArray(&FNFTAssetLinkData::ChildLinks)
+		->AddField(&FLink::Path)
+		->OnMember(&FLink::Asset)
+			->AddField(&FAsset::CollectionId)
+			->AddField(&FAsset::TokenId);
+
+UAssetRegisterQueryingLibrary::MakeAssetQuery(AssetQuery->GetQueryJsonString()).Next([](const FLoadAssetResult& Result)
 {
-  FAsset OutAsset;
-  if (QueryStringUtil::TryGetModel(OutJson, OutAsset))
-  {
-    
-  }
+	if (Result.bSuccess)
+	{
+		// Process Asset here
+	  	const FAsset Asset = Result.Value;
+	}
 }
 ```
-Note: Use `QueryStringUtil::TryGetModel<FAsset>` to convert raw json to `FAsset`
-
----
 
 ## 🔍 Making Custom Assets Query
 ### C++ Example
@@ -154,54 +160,31 @@ AssetConnectionInput.CollectionIds = {CollectionId};
 AssetConnectionInput.First = 2;
 
 // create Assets Query
-auto AssetsQuery = FAssetRegisterQueryBuilder::AddAssetsQuery(AssetConnectionInput);
-
+auto AssetsQuery = FAssetRegisterQueryBuilder::AddAssetsQuery(AssetsInput);
 const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)->OnMember(&FAssetEdge::Node);
-
-// Add custom fields here
 AssetNode->AddField(&FAsset::TokenId)
-  ->AddField(&FAsset::CollectionId)
-  ->AddField(&FAsset::Profiles);
-
+	->AddField(&FAsset::CollectionId)
+	->AddField(&FAsset::Profiles);
 AssetNode->OnMember(&FAsset::Metadata)
-  ->AddField(&FAssetMetadata::Properties)
-  ->AddField(&FAssetMetadata::Attributes)
-  ->AddField(&FAssetMetadata::RawAttributes);
+	->AddField(&FAssetMetadata::Properties)
+	->AddField(&FAssetMetadata::Attributes)
+	->AddField(&FAssetMetadata::RawAttributes);
 	
 AssetNode->OnMember(&FAsset::Collection)
-  ->AddField(&FCollection::ChainId)
-  ->AddField(&FCollection::ChainType)
-  ->AddField(&FCollection::Location)
-  ->AddField(&FCollection::Name);
+	->AddField(&FCollection::ChainId)
+	->AddField(&FCollection::ChainType)
+	->AddField(&FCollection::Location)
+	->AddField(&FCollection::Name);
 	
-AssetNode->OnMember(&FAsset::Links)
-  ->OnUnion<FNFTAssetLinkData, FAssetLinkData>()
-    ->OnArray(&FNFTAssetLinkData::ChildLinks)
-      ->AddField(&FLink::Path)
-        ->OnMember(&FLink::Asset)
-          ->AddField(&FAsset::CollectionId)
-          ->AddField(&FAsset::TokenId);
-
-UAssetRegisterQueryingLibrary::SendRequest(AssetsQuery->GetQueryString()).Next([](const FString& OutJson)
+MakeAssetQuery(AssetsQuery->GetQueryJsonString()).Next([](const FLoadAssetsResult& Result)
 {
-  TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(OutJson);
-  TSharedPtr<FJsonObject> RootObject;
-  FJsonSerializer::Deserialize(Reader, RootObject);
-
-  TArray<TSharedPtr<FJsonValue>> AssetNodes;
-  QueryStringUtil::FindAllFieldsRecursively(RootObject, TEXT("node"), AssetNodes);
-			
-  for (const auto& AssetNode : AssetNodes)
-  {
-    auto AssetNodeObject = AssetNode->AsObject();
-    FAsset Asset;
-
-    if (FJsonObjectConverter::JsonObjectToUStruct(AssetNodeObject.ToSharedRef(), &Asset))
-    {
-
-    }
-  }
-}
+	if (Result.bSuccess)
+	{
+		const FAssets Assets = Result.Value;
+		for (const FAssetEdge& AssetEdge : Assets.Edges)
+		{
+			const FAsset Asset = AssetEdge.Node;
+		}
+	}
+});
 ```
-Note: Use `QueryStringUtil::FindAllFieldsRecursively` and `FJsonObjectConverter::JsonObjectToUStruct` to fully deserialize the response properly. 
-Especially for polymorphic properties like `AssetLink`. See `UAssetRegisterQueryingLibrary` for more details.

@@ -2,7 +2,7 @@
 #include "AssetInput.generated.h"
 
 USTRUCT(BlueprintType)
-struct FAssetInput
+struct ASSETREGISTER_API FAssetInput
 {
 	GENERATED_BODY()
 

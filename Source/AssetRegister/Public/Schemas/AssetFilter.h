@@ -4,7 +4,7 @@
 #include "AssetFilter.generated.h"
 
 USTRUCT(BlueprintType)
-struct FAssetFilter
+struct ASSETREGISTER_API FAssetFilter
 {
 	GENERATED_BODY()
 	

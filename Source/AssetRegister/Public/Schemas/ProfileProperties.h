@@ -3,7 +3,7 @@
 #include "ProfileProperties.generated.h"
 
 USTRUCT(BlueprintType)
-struct FProfileProperties
+struct ASSETREGISTER_API FProfileProperties
 {
 	GENERATED_BODY()
 

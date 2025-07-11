@@ -4,7 +4,7 @@
 #include "AssetConnection.generated.h"
 
 USTRUCT(BlueprintType)
-struct FAssetConnection
+struct ASSETREGISTER_API FAssetConnection
 {
 	GENERATED_BODY()
 	

@@ -9,7 +9,7 @@
 #include "SFTAssetOwnership.generated.h"
 
 USTRUCT(BlueprintType, meta=(QueryName = "SFTAssetOwnership"))
-struct FSFTAssetOwnershipData : public FAssetOwnershipData
+struct ASSETREGISTER_API FSFTAssetOwnershipData : public FAssetOwnershipData
 {
 	GENERATED_BODY()
 

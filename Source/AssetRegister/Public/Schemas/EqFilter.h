@@ -3,7 +3,7 @@
 #include "EqFilter.generated.h"
 
 USTRUCT(BlueprintType)
-struct FEqFilter
+struct ASSETREGISTER_API FEqFilter
 {
 	GENERATED_BODY()
 

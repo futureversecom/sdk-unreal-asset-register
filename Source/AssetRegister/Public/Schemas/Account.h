@@ -4,7 +4,7 @@
 #include "Account.generated.h"
 
 USTRUCT(BlueprintType)
-struct FAccount
+struct ASSETREGISTER_API FAccount
 {
 	GENERATED_BODY()
 	

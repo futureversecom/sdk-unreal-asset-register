@@ -3,7 +3,7 @@
 #include "Assets.generated.h"
 
 USTRUCT(BlueprintType)
-struct FPageInfo
+struct ASSETREGISTER_API FPageInfo
 {
 	GENERATED_BODY()
 
@@ -24,7 +24,7 @@ struct FPageInfo
 };
 
 USTRUCT(BlueprintType)
-struct FAssetEdge
+struct ASSETREGISTER_API FAssetEdge
 {
 	GENERATED_BODY()
 
@@ -36,7 +36,7 @@ struct FAssetEdge
 };
 
 USTRUCT(Blueprintable, meta=(QueryName = "assets"))
-struct FAssets
+struct ASSETREGISTER_API FAssets
 {
 	GENERATED_BODY()
 

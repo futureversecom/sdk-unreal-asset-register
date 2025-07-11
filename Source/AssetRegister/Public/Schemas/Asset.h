@@ -7,7 +7,7 @@
 #include "Asset.generated.h"
 
 USTRUCT(BlueprintType)
-struct FCollection
+struct ASSETREGISTER_API FCollection
 {
 	GENERATED_BODY()
 	
@@ -28,7 +28,7 @@ struct FCollection
 };
 
 USTRUCT(BlueprintType)
-struct FRawAttributes
+struct ASSETREGISTER_API FRawAttributes
 {
 	GENERATED_BODY()
 	
@@ -40,7 +40,7 @@ struct FRawAttributes
 };
 
 USTRUCT(BlueprintType)
-struct FAssetMetadata
+struct ASSETREGISTER_API FAssetMetadata
 {
 	GENERATED_BODY()
 	
@@ -61,7 +61,7 @@ struct FAssetMetadata
 };
 
 USTRUCT(BlueprintType, Blueprintable, meta=(QueryName = "asset"))
-struct FAsset
+struct ASSETREGISTER_API FAsset
 {
 	GENERATED_BODY()
 	

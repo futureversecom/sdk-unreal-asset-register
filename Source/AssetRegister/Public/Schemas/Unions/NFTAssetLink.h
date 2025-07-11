@@ -11,7 +11,7 @@
 
 // data struct for UNFTAssetLink so it can deserialized
 USTRUCT(BlueprintType, meta=(QueryName = "NFTAssetLink"))
-struct FNFTAssetLinkData : public FAssetLinkData
+struct ASSETREGISTER_API FNFTAssetLinkData : public FAssetLinkData
 {
 	GENERATED_BODY()
 

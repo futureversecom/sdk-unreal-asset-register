@@ -129,7 +129,14 @@ public:
 	static TFuture<FString> SendRequest(const FString& Content);
 
 private:
+	/**
+	* Handles deserializing the response from Assets query.
+	*/
 	static TFuture<FLoadAssetsResult> HandleAssetsResponse(const FString& ResponseJson);
+	
+	/**
+	* Handles deserializing the response from Asset query.
+	*/
 	static TFuture<FLoadAssetResult> HandleAssetResponse(const FString& ResponseJson);
 	
 	template<typename T>

@@ -163,11 +163,18 @@ void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInpu
 	const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)->OnMember(&FAssetEdge::Node);
 	AssetNode->AddField(&FAsset::TokenId)
 			->AddField(&FAsset::CollectionId)
+			->AddField(&FAsset::AssetType)
 			->AddField(&FAsset::Profiles);
+	
 	AssetNode->OnMember(&FAsset::Metadata)
 			->AddField(&FAssetMetadata::Properties)
 			->AddField(&FAssetMetadata::Attributes)
 			->AddField(&FAssetMetadata::RawAttributes);
+
+	AssetNode->OnMember(&FAsset::Ownership)
+			->OnUnion<FNFTAssetOwnershipData>()
+				->OnMember(&FNFTAssetOwnershipData::Owner)
+				->AddField(&FAccount::Address);
 	
 	AssetNode->OnMember(&FAsset::Collection)
 			->AddField(&FCollection::ChainId)
@@ -175,7 +182,7 @@ void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInpu
 			->AddField(&FCollection::Location)
 			->AddField(&FCollection::Name);
 	
-	MakeAssetQuery(AssetsQuery->GetQueryJsonString()).Next([OnCompleted]
+	MakeAssetsQuery(AssetsQuery->GetQueryJsonString()).Next([OnCompleted]
 	(const FLoadAssetsResult& Result)
 	{
 		if (!Result.bSuccess)
@@ -217,7 +224,7 @@ TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::GetAssets(const FAsset
 			->AddField(&FCollection::Location)
 			->AddField(&FCollection::Name);
 	
-	MakeAssetQuery(AssetsQuery->GetQueryJsonString()).Next([Promise]
+	MakeAssetsQuery(AssetsQuery->GetQueryJsonString()).Next([Promise]
 	(const FLoadAssetsResult& Result)
 	{
 		if (!Result.bSuccess)
@@ -431,8 +438,10 @@ TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::HandleAssetsResponse(c
 	
 	TSharedPtr<TPromise<FLoadAssetsResult>> Promise = MakeShared<TPromise<FLoadAssetsResult>>();
 
-	FAssets OutAssets;
-	if (!QueryStringUtil::TryGetModel(ResponseJson, OutAssets))
+	FAssets OutAssets = FAssets();
+
+	FAssets Assets;
+	if (!QueryStringUtil::TryGetModel(ResponseJson, Assets))
 	{
 		UE_LOG(LogAssetRegister, Error, TEXT("Failed to get Assets Object from Json: %s!"), *ResponseJson);
 		auto OutResult = FLoadAssetsResult();
@@ -440,6 +449,8 @@ TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::HandleAssetsResponse(c
 		Promise->SetValue(OutResult);
 		return Promise->GetFuture();
 	}
+	OutAssets.PageInfo = Assets.PageInfo;
+	OutAssets.Total = Assets.Total;
 	
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseJson);
 	TSharedPtr<FJsonObject> RootObject;

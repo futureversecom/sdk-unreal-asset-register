@@ -18,9 +18,12 @@ This Unreal Engine plugin provides an API for creating and sending GraphQL reque
 ## 🔧 Getting Started
 Add the `AssetRegisterPlugin` to your project's plugins folder and enable it in the Plugins tab in Unreal Engine.
 
-Set the endpoint URL you want to send your requests.
+To set the target Asset Registry end point, head to your Project Settings and navigate to your `Plugins/Futureverse Asset Register`.
 
-The endpoint URL can be changed in `Plugins/Futureverse Asset Register`
+Select the URL you want to target:
+- Production -- `https://ar-api.futureverse.app/graphql`
+- Staging -- `https://ar-api.futureverse.cloud/graphql`
+- Dev -- `https://ar-api.futureverse.dev/graphql`
 
 ![image](https://github.com/user-attachments/assets/e37e6858-0c0a-4998-8b88-10f19f6d53d1)
 
@@ -100,9 +103,9 @@ Note: `FAssetLinkWrapper` contains the actual UObject with data.
 ---
 ## 🔧 Building and sending a Custom Query Step by Step
 
-1. Use `FAssetRegisterQueryBuilder` to crete either a Asset or Assets query.
+1. Use `FAssetRegisterQueryBuilder` to create either a Asset or Assets query.
  	- This returns either `FQueryNode<FAsset>` or `FQueryNode<FAssets>`
-	- Each query requires a different input. E.g. Asset query requires `FAssetInput` where as Assets query requires `FAssetConnection`
+	- Each query requires a different input. E.g. Asset query requires `FAssetInput` whereas Assets query requires `FAssetConnection`
 3. Populate your input
 4. Populate your query with fields
 	- Use `AddField` to add field from your initial Schema Object e.g. `AssetNode->AddField(&FAsset::TokenId)`
@@ -110,7 +113,7 @@ Note: `FAssetLinkWrapper` contains the actual UObject with data.
 	- Use `OnUnion` to specify the polymorphic member field of the Schema Object e.g. `AssetNode->OnMember(&FAsset::Links)->OnUnion<FNFTAssetLinkData>()`
 	- Use `OnArray` to add the member field of array type of the Schema Object e.g. `AssetQuery->OnMember(&FAsset::Links)->OnUnion<FNFTAssetLinkData>()->OnArray(&FNFTAssetLinkData::ChildLinks)`
 	- Use `AddArgument` to add argument to one of the fields e.g. `AssetQuery->OnMember(&FAsset::Links)->OnUnion<FSFTAssetLinkData>()->AddArgument(TEXT("addresses"), addresses)`
-5. Get the your query json string from the root query node e.g. `AssetQuery->GetQueryJsonString()` and send it to the `UAssetRegisterQueryingLibrary`.
+5. Get your query json string from the root query node e.g. `AssetQuery->GetQueryJsonString()` and send it to the `UAssetRegisterQueryingLibrary`.
 	- Highly recommend using `UAssetRegisterQueryingLibrary::MakeAssetQuery` or `UAssetRegisterQueryingLibrary::MakeAssetsQuery` so that you don't have to deal with deserializing polymorphic objects yourself. 
 	- You can still handle the response yourself by sending the http request yourself or use `UAssetRegisterQueryingLibrary::SendRequest`
 
@@ -160,7 +163,7 @@ AssetConnectionInput.CollectionIds = {CollectionId};
 AssetConnectionInput.First = 2;
 
 // create Assets Query
-auto AssetsQuery = FAssetRegisterQueryBuilder::AddAssetsQuery(AssetsInput);
+auto AssetsQuery = FAssetRegisterQueryBuilder::AddAssetsQuery(AssetConnectionInput);
 const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)->OnMember(&FAssetEdge::Node);
 AssetNode->AddField(&FAsset::TokenId)
 	->AddField(&FAsset::CollectionId)

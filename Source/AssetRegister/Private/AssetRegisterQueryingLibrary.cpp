@@ -159,28 +159,7 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::GetAssetLinks(const FSt
 
 void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInput, const FGetAssetsCompleted& OnCompleted)
 {
-	auto AssetsQuery = FAssetRegisterQueryBuilder::AddAssetsQuery(AssetsInput);
-	const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)->OnMember(&FAssetEdge::Node);
-	AssetNode->AddField(&FAsset::TokenId)
-			->AddField(&FAsset::CollectionId)
-			->AddField(&FAsset::AssetType)
-			->AddField(&FAsset::Profiles);
-	
-	AssetNode->OnMember(&FAsset::Metadata)
-			->AddField(&FAssetMetadata::Properties)
-			->AddField(&FAssetMetadata::Attributes)
-			->AddField(&FAssetMetadata::RawAttributes);
-
-	AssetNode->OnMember(&FAsset::Ownership)
-			->OnUnion<FNFTAssetOwnershipData>()
-				->OnMember(&FNFTAssetOwnershipData::Owner)
-				->AddField(&FAccount::Address);
-	
-	AssetNode->OnMember(&FAsset::Collection)
-			->AddField(&FCollection::ChainId)
-			->AddField(&FCollection::ChainType)
-			->AddField(&FCollection::Location)
-			->AddField(&FCollection::Name);
+	const auto AssetsQuery = GetAssetsQueryNode(AssetsInput);
 	
 	MakeAssetsQuery(AssetsQuery->GetQueryJsonString()).Next([OnCompleted]
 	(const FLoadAssetsResult& Result)
@@ -201,28 +180,7 @@ TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::GetAssets(const FAsset
 {
 	TSharedPtr<TPromise<FLoadAssetsResult>> Promise = MakeShared<TPromise<FLoadAssetsResult>>();
 	
-	auto AssetsQuery = FAssetRegisterQueryBuilder::AddAssetsQuery(AssetsInput);
-	const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)->OnMember(&FAssetEdge::Node);
-	AssetNode->AddField(&FAsset::TokenId)
-			->AddField(&FAsset::CollectionId)
-			->AddField(&FAsset::AssetType)
-			->AddField(&FAsset::Profiles);
-	
-	AssetNode->OnMember(&FAsset::Metadata)
-			->AddField(&FAssetMetadata::Properties)
-			->AddField(&FAssetMetadata::Attributes)
-			->AddField(&FAssetMetadata::RawAttributes);
-
-	AssetNode->OnMember(&FAsset::Ownership)
-			->OnUnion<FNFTAssetOwnershipData>()
-				->OnMember(&FNFTAssetOwnershipData::Owner)
-				->AddField(&FAccount::Address);
-	
-	AssetNode->OnMember(&FAsset::Collection)
-			->AddField(&FCollection::ChainId)
-			->AddField(&FCollection::ChainType)
-			->AddField(&FCollection::Location)
-			->AddField(&FCollection::Name);
+	const auto AssetsQuery = GetAssetsQueryNode(AssetsInput);
 	
 	MakeAssetsQuery(AssetsQuery->GetQueryJsonString()).Next([Promise]
 	(const FLoadAssetsResult& Result)
@@ -451,6 +409,12 @@ TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::HandleAssetsResponse(c
 	}
 	OutAssets.PageInfo = Assets.PageInfo;
 	OutAssets.Total = Assets.Total;
+
+	TArray<FString> AssetEdgeCursors;
+	for (const FAssetEdge& AssetEdge : Assets.Edges)
+	{
+		AssetEdgeCursors.Add(AssetEdge.Cursor);
+	}
 	
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseJson);
 	TSharedPtr<FJsonObject> RootObject;
@@ -490,14 +454,17 @@ TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::HandleAssetsResponse(c
 		LoadAssetFutures.Add(MoveTemp(LoadAssetFuture));
 	}
 	
-	WhenAll(LoadAssetFutures).Next([Promise, &OutAssets, LoadedAssets](const TArray<FLoadAssetResult>& Results)
+	WhenAll(LoadAssetFutures).Next([Promise, &OutAssets, LoadedAssets, AssetEdgeCursors](const TArray<FLoadAssetResult>& Results)
 	{
-		for (const FAsset& Asset : *LoadedAssets)
+		ensure(AssetEdgeCursors.Num() == LoadedAssets->Num());
+		for (int i = 0; i < LoadedAssets->Num(); ++i)
 		{
 			FAssetEdge Edge;
-			Edge.Node = Asset;
+			Edge.Node = (*LoadedAssets)[i];
+			Edge.Cursor = AssetEdgeCursors[i];
 			OutAssets.Edges.Add(Edge);
 		}
+		
 		auto OutResult = FLoadAssetsResult();
 		OutResult.SetResult(OutAssets);
 		Promise->SetValue(OutResult);
@@ -559,4 +526,40 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::HandleAssetResponse(con
 	Promise->SetValue(Result);
 	
 	return Promise->GetFuture();
+}
+
+TSharedPtr<FQueryNode<FAssets>> UAssetRegisterQueryingLibrary::GetAssetsQueryNode(const FAssetConnection& AssetsInput)
+{
+	auto AssetsQuery = FAssetRegisterQueryBuilder::AddAssetsQuery(AssetsInput);
+	const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)
+		->AddField(&FAssetEdge::Cursor)->OnMember(&FAssetEdge::Node);
+	AssetNode->AddField(&FAsset::TokenId)
+			->AddField(&FAsset::CollectionId)
+			->AddField(&FAsset::AssetType)
+			->AddField(&FAsset::Profiles);
+	
+	AssetNode->OnMember(&FAsset::Metadata)
+			->AddField(&FAssetMetadata::Properties)
+			->AddField(&FAssetMetadata::Attributes)
+			->AddField(&FAssetMetadata::RawAttributes);
+
+	AssetNode->OnMember(&FAsset::Ownership)
+			->OnUnion<FNFTAssetOwnershipData>()
+				->OnMember(&FNFTAssetOwnershipData::Owner)
+				->AddField(&FAccount::Address);
+	
+	AssetNode->OnMember(&FAsset::Collection)
+			->AddField(&FCollection::ChainId)
+			->AddField(&FCollection::ChainType)
+			->AddField(&FCollection::Location)
+			->AddField(&FCollection::Name);
+
+	AssetsQuery->OnMember(&FAssets::PageInfo)
+		->AddField(&FPageInfo::EndCursor)
+		->AddField(&FPageInfo::HasNextPage)
+		->AddField(&FPageInfo::HasPreviousPage)
+		->AddField(&FPageInfo::NextPage)
+		->AddField(&FPageInfo::StartCursor);
+	
+	return AssetsQuery;
 }

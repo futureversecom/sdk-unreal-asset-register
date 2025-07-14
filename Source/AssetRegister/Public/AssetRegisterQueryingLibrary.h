@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "QueryNode.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Schemas/Asset.h"
 #include "Schemas/Assets.h"
@@ -138,6 +139,8 @@ private:
 	* Handles deserializing the response from Asset query.
 	*/
 	static TFuture<FLoadAssetResult> HandleAssetResponse(const FString& ResponseJson);
+	
+	static TSharedPtr<FQueryNode<FAssets>> GetAssetsQueryNode(const FAssetConnection& AssetsInput);
 	
 	template<typename T>
 	static TFuture<TArray<T>> WhenAll(TArray<TFuture<T>>& Futures)

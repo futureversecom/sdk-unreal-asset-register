@@ -6,9 +6,6 @@ USTRUCT(BlueprintType)
 struct ASSETREGISTER_API FPageInfo
 {
 	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "startCursor"))
-	FString StartCursor;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "endCursor"))
 	FString EndCursor;
@@ -17,10 +14,13 @@ struct ASSETREGISTER_API FPageInfo
 	bool HasNextPage;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "hasPreviousPage"))
-	FString HasPreviousPage;
+	bool HasPreviousPage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "nextPage"))
 	FString NextPage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "startCursor"))
+	FString StartCursor;
 };
 
 USTRUCT(BlueprintType)

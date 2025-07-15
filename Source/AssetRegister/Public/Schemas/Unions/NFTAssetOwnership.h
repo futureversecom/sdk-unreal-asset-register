@@ -9,15 +9,15 @@
 #include "NFTAssetOwnership.generated.h"
 
 
-USTRUCT(BlueprintType, meta=(QueryName = "NFTAssetOwnership"))
-struct ASSETREGISTER_API FNFTAssetOwnershipData : public FAssetOwnershipData
+USTRUCT(BlueprintType)
+struct ASSETREGISTER_API FNFTAssetOwnership : public FAssetOwnership
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Id;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "owner"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAccount Owner;
 };
 
@@ -25,11 +25,11 @@ struct ASSETREGISTER_API FNFTAssetOwnershipData : public FAssetOwnershipData
  * 
  */
 UCLASS(BlueprintType)
-class ASSETREGISTER_API UNFTAssetOwnership : public UAssetOwnership
+class ASSETREGISTER_API UNFTAssetOwnershipObject : public UAssetOwnershipObject
 {
 	GENERATED_BODY()
 	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FNFTAssetOwnershipData Data;
+	FNFTAssetOwnership Data;
 };

@@ -7,9 +7,9 @@ struct ASSETREGISTER_API FEqFilter
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "name"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Name;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "value"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Value;
 };

@@ -7,19 +7,19 @@ struct ASSETREGISTER_API FPageInfo
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "endCursor"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString EndCursor;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "hasNextPage"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool HasNextPage;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "hasPreviousPage"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool HasPreviousPage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "nextPage"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString NextPage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "startCursor"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString StartCursor;
 };
 
@@ -28,24 +28,24 @@ struct ASSETREGISTER_API FAssetEdge
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "cursor"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Cursor;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "node"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAsset Node;
 };
 
-USTRUCT(Blueprintable, meta=(QueryName = "assets"))
+USTRUCT(Blueprintable)
 struct ASSETREGISTER_API FAssets
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "edges"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FAssetEdge> Edges;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "pageInfo"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FPageInfo PageInfo;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "total"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Total = 0;
 };

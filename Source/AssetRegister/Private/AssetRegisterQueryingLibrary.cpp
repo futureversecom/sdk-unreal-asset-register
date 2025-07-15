@@ -83,8 +83,8 @@ void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const 
 {
 	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 	AssetQuery->OnMember(&FAsset::Links)
-	->OnUnion<FNFTAssetLinkData>()
-		->OnArray(&FNFTAssetLinkData::ChildLinks)
+	->OnUnion<FNFTAssetLink>()
+		->OnArray(&FNFTAssetLink::ChildLinks)
 			->AddField(&FLink::Path)
 			->OnMember(&FLink::Asset)
 				->AddField(&FAsset::CollectionId)
@@ -101,7 +101,7 @@ void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const 
 		}
 		
 		FAsset OutAsset = Result.Value;
-		auto Links = Cast<UNFTAssetLink>(OutAsset.LinkWrapper.Links);
+		auto Links = Cast<UNFTAssetLinkObject>(OutAsset.LinkWrapper.Links);
 		if (!Links)
 		{
 			UE_LOG(LogAssetRegister, Error, TEXT("[GetAssetLinks] Failed to get NFTAssetLink Data!"));
@@ -121,8 +121,8 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::GetAssetLinks(const FSt
 	
 	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
 	AssetQuery->OnMember(&FAsset::Links)
-	->OnUnion<FNFTAssetLinkData>()
-		->OnArray(&FNFTAssetLinkData::ChildLinks)
+	->OnUnion<FNFTAssetLink>()
+		->OnArray(&FNFTAssetLink::ChildLinks)
 			->AddField(&FLink::Path)
 			->OnMember(&FLink::Asset)
 				->AddField(&FAsset::CollectionId)
@@ -141,7 +141,7 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::GetAssetLinks(const FSt
 		}
 		
 		FAsset OutAsset = Result.Value;
-		auto Links = Cast<UNFTAssetLink>(OutAsset.LinkWrapper.Links);
+		auto Links = Cast<UNFTAssetLinkObject>(OutAsset.LinkWrapper.Links);
 		if (!Links)
 		{
 			UE_LOG(LogAssetRegister, Error, TEXT("[GetAssetLinks] Failed to get NFTAssetLink Data!"));
@@ -490,20 +490,20 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::HandleAssetResponse(con
 	}
 
 	// manually try to get FNFTAssetOwnershipData
-	FNFTAssetOwnershipData NFTOwnershipData;
+	FNFTAssetOwnership NFTOwnershipData;
 	if (QueryStringUtil::TryGetModelField<FAsset>(ResponseJson, TEXT("ownership"), NFTOwnershipData))
 	{
-		UNFTAssetOwnership* NFTOwnership = NewObject<UNFTAssetOwnership>();
+		UNFTAssetOwnershipObject* NFTOwnership = NewObject<UNFTAssetOwnershipObject>();
 		NFTOwnership->Data = NFTOwnershipData;
 		
 		OutAsset.OwnershipWrapper.Ownership = NFTOwnership;
 	}
 	
 	// manually try to get FNFTAssetLinkData
-	FNFTAssetLinkData NFTAssetLinkData;
+	FNFTAssetLink NFTAssetLinkData;
 	if (QueryStringUtil::TryGetModelField<FAsset>(ResponseJson, TEXT("links"), NFTAssetLinkData))
 	{
-		UNFTAssetLink* NFTAssetLink = NewObject<UNFTAssetLink>();
+		UNFTAssetLinkObject* NFTAssetLink = NewObject<UNFTAssetLinkObject>();
 		NFTAssetLink->Data = NFTAssetLinkData;
 				
 		for (FLink& ChildLink : NFTAssetLink->Data.ChildLinks)
@@ -544,8 +544,8 @@ TSharedPtr<FQueryNode<FAssets>> UAssetRegisterQueryingLibrary::GetAssetsQueryNod
 			->AddField(&FAssetMetadata::RawAttributes);
 
 	AssetNode->OnMember(&FAsset::Ownership)
-			->OnUnion<FNFTAssetOwnershipData>()
-				->OnMember(&FNFTAssetOwnershipData::Owner)
+			->OnUnion<FNFTAssetOwnership>()
+				->OnMember(&FNFTAssetOwnership::Owner)
 				->AddField(&FAccount::Address);
 	
 	AssetNode->OnMember(&FAsset::Collection)

@@ -11,19 +11,19 @@ struct ASSETREGISTER_API FCollection
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "chainId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString ChainId;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "chainType"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString ChainType;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Id;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "location"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Location;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "name"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Name;
 };
 
@@ -44,61 +44,61 @@ struct ASSETREGISTER_API FAssetMetadata
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Id;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "uri"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Uri;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "properties"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<FString, FString> Properties;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "attributes"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<FString, FString> Attributes;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "rawAttributes"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FRawAttributes> RawAttributes;
 };
 
-USTRUCT(BlueprintType, Blueprintable, meta=(QueryName = "asset"))
+USTRUCT(BlueprintType, Blueprintable)
 struct ASSETREGISTER_API FAsset
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "assetType"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EAssetType AssetType;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "collection"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FCollection Collection;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "collectionId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString CollectionId;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Id;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAssetLinkWrapper LinkWrapper;
 
-	UPROPERTY(meta=(QueryName = "links"))
-	FAssetLinkData Links;
+	UPROPERTY()
+	FAssetLink Links;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "metadata"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAssetMetadata Metadata;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAssetOwnershipWrapper OwnershipWrapper;
 
-	UPROPERTY(meta=(QueryName = "ownership"))
-	FAssetOwnershipData Ownership;
+	UPROPERTY()
+	FAssetOwnership Ownership;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "profiles"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<FString, FString> Profiles;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "schema"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FSchema Schema;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "tokenId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString TokenId;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

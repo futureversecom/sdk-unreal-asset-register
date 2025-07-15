@@ -2,13 +2,13 @@
 #include "AssetLink.generated.h"
 
 USTRUCT()
-struct ASSETREGISTER_API FAssetLinkData
+struct ASSETREGISTER_API FAssetLink
 {
 	GENERATED_BODY()
 };
 
 UCLASS()
-class ASSETREGISTER_API UAssetLink : public UObject
+class ASSETREGISTER_API UAssetLinkObject : public UObject
 {
 	GENERATED_BODY()
 };
@@ -19,6 +19,6 @@ struct ASSETREGISTER_API FAssetLinkWrapper
 	GENERATED_BODY()                                                                          
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)                                        
-	UAssetLink* Links;                                                        
+	UAssetLinkObject* Links;                                                        
 };  
 

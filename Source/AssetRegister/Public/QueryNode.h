@@ -232,7 +232,7 @@ public:
 	{
 		using Derived = std::remove_pointer_t<TDerived>;
 		
-		FString FieldName = QueryStringUtil::GetQueryName<Derived>();
+		FString FieldName = QueryStringUtil::GetQueryName<Derived>(false);
 		if (!ChildrenMap.Contains(FieldName))
 		{
 			ChildrenMap.Add(FieldName, MakeShared<FQueryNode<Derived>>(FieldName, true));

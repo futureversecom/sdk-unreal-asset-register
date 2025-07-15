@@ -45,6 +45,23 @@ namespace QueryStringUtil
 		return FinalJson;
 	}
 	
+	inline FString ToQueryName(const FString& OriginalName, const FString& PrefixChar, const bool bToCamelCase = true)
+	{
+		FString OutString = OriginalName;
+		if (!PrefixChar.IsEmpty() && OriginalName.StartsWith(PrefixChar) && FChar::IsUpper(OriginalName[1]))
+		{
+			OutString = OriginalName.RightChop(1);		
+		}
+		
+		// To camel Case
+		if (bToCamelCase && FChar::IsUpper(OutString[0]))
+		{
+			OutString[0] = FChar::ToLower(OriginalName[0]);
+		}
+		
+		return OutString;
+	}
+	
 	template<typename TClass, typename TField, std::enable_if_t<std::is_base_of_v<UObject, TClass>, int> = 0>
 	FString GetQueryName(TField TClass::* FieldPtr)
 	{
@@ -55,9 +72,7 @@ namespace QueryStringUtil
 		{
 			if (It->GetOffset_ForUFunction() == Offset)
 			{
-				if (It->HasMetaData(*QueryNameMetadata))
-					return It->GetMetaData(*QueryNameMetadata);
-				return It->GetName();
+				return ToQueryName(It->GetName(), TEXT(""));
 			}
 		}
 		return TEXT("<UnknownField>");
@@ -73,48 +88,29 @@ namespace QueryStringUtil
 		{
 			if (It->GetOffset_ForUFunction() == Offset)
 			{
-				if (It->HasMetaData(*QueryNameMetadata))
-					return It->GetMetaData(*QueryNameMetadata);
-				return It->GetName();
+				return ToQueryName(It->GetName(), TEXT(""));
 			}
 		}
 		return TEXT("<UnknownField>");
 	}
 
 	template<typename TStruct, std::enable_if_t<TStruct::StaticStruct != nullptr, int> = 0>
-	FString GetQueryName()
+	FString GetQueryName(const bool bToCamelCase = true)
 	{
 		const UStruct* Struct = TStruct::StaticStruct();
-		if (Struct->HasMetaData(*QueryNameMetadata))
-		{
-			return Struct->GetMetaData(*QueryNameMetadata);
-		}
-
+		
 		FString StructName = Struct->GetFName().ToString();
-		if (StructName.StartsWith(TEXT("F")) && FChar::IsUpper(StructName[1]))
-		{
-			StructName = StructName.RightChop(1);
-		}
-		return StructName;
+		return ToQueryName(StructName, TEXT("F"), bToCamelCase);
 	}
 	
 	// UObject class pointer version
 	template<typename TClass, std::enable_if_t<std::is_base_of_v<UObject, TClass>, int> = 0>
-	FString GetQueryName()
+	FString GetQueryName(const bool bToCamelCase = true)
 	{
 		UClass* Class = TClass::StaticClass();
 
-		if (Class->HasMetaData(*QueryNameMetadata))
-		{
-			return Class->GetMetaData(*QueryNameMetadata);
-		}
-
 		FString ClassName = Class->GetFName().ToString();
-		if (ClassName.StartsWith(TEXT("U")) && FChar::IsUpper(ClassName[1]))
-		{
-			ClassName = ClassName.RightChop(1);
-		}
-		return ClassName;
+		return ToQueryName(ClassName, TEXT("U"), bToCamelCase);
 	}
 	
 	template<typename TModel, typename TStruct>

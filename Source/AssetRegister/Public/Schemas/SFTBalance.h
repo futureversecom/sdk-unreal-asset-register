@@ -8,9 +8,9 @@ struct ASSETREGISTER_API FSFTBalance
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "balance"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Balance;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "owner"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAccount Owner;
 };

@@ -8,9 +8,9 @@ struct ASSETREGISTER_API FSort
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "name"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Name;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "order"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	ESortOrder Order;
 };

@@ -8,12 +8,12 @@ struct ASSETREGISTER_API FAssetFilter
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "eqFilters"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FEqFilter> EqFilters;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "hasFilters"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FString> HasFilters;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "search"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Search;
 };

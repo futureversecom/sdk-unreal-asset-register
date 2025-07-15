@@ -8,22 +8,22 @@ struct ASSETREGISTER_API FOffChainAsset
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "assetId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString AssetId;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "creatorCollectionId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString CreatorCollectionId;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "creatorId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString CreatorId;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Id;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "tokenId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString TokenId;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "type"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Type;
 };
 
@@ -32,12 +32,12 @@ struct ASSETREGISTER_API FLink
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "asset"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAsset Asset;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "offChainAsset"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FOffChainAsset OffChainAsset;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "path"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Path;
 };

@@ -10,39 +10,39 @@ struct ASSETREGISTER_API FAssetConnection
 	
 	FAssetConnection(){}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "removeDuplicates"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool RemoveDuplicates = false;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "sort"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FSort> Sort;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "filter"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAssetFilter Filter;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "schemaId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString SchemaId;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "collectionIds"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FString> CollectionIds;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "addresses"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FString> Addresses;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "before"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Before;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "after"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString After;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "first"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float First = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "last"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Last = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "chainId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString ChainId;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "chainType"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString ChainType;
 };

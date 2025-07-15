@@ -6,13 +6,13 @@
 #include "AssetOwnership.generated.h"
 
 USTRUCT()
-struct ASSETREGISTER_API FAssetOwnershipData
+struct ASSETREGISTER_API FAssetOwnership
 {
 	GENERATED_BODY()
 };
 
 UCLASS()
-class ASSETREGISTER_API UAssetOwnership : public UObject
+class ASSETREGISTER_API UAssetOwnershipObject : public UObject
 {
 	GENERATED_BODY()
 };
@@ -23,5 +23,5 @@ struct ASSETREGISTER_API FAssetOwnershipWrapper
 	GENERATED_BODY()                                                                          
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)                                        
-	UAssetOwnership* Ownership ;                                                        
+	UAssetOwnershipObject* Ownership ;                                                        
 }; 

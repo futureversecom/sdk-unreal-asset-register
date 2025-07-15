@@ -7,18 +7,18 @@ struct ASSETREGISTER_API FSchema
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Id;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "name"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Name;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "namespace"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString NameSpace;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "schema"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Schema;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "version"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Version;
 };

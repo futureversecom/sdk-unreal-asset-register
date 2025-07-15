@@ -8,18 +8,18 @@
 
 #include "SFTAssetOwnership.generated.h"
 
-USTRUCT(BlueprintType, meta=(QueryName = "SFTAssetOwnership"))
-struct ASSETREGISTER_API FSFTAssetOwnershipData : public FAssetOwnershipData
+USTRUCT(BlueprintType)
+struct ASSETREGISTER_API FSFTAssetOwnership : public FAssetOwnership
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Id;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "balanceOf"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FSFTBalance BalanceOf;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "balancesOf"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FSFTBalance> BalancesOf;
 };
 
@@ -27,11 +27,11 @@ struct ASSETREGISTER_API FSFTAssetOwnershipData : public FAssetOwnershipData
  * 
  */
 UCLASS(BlueprintType)
-class ASSETREGISTER_API USFTAssetOwnership : public UAssetOwnership
+class ASSETREGISTER_API USFTAssetOwnershipObject : public UAssetOwnershipObject
 {
 	GENERATED_BODY()
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FSFTAssetOwnershipData OwnershipData;
+	FSFTAssetOwnership OwnershipData;
 };

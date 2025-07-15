@@ -31,13 +31,13 @@ bool AssetsQueryGenerationTest::RunTest(const FString& Parameters)
 			->AddField(&FAssetMetadata::RawAttributes);
 	
 	AssetNode->OnMember(&FAsset::Ownership)
-				->OnUnion<FNFTAssetOwnershipData>()
-					->OnMember(&FNFTAssetOwnershipData::Owner)
+				->OnUnion<FNFTAssetOwnership>()
+					->OnMember(&FNFTAssetOwnership::Owner)
 					->AddField(&FAccount::Address);
 	
 	AssetNode->OnMember(&FAsset::Links)
-		->OnUnion<FNFTAssetLinkData>()
-			->OnArray(&FNFTAssetLinkData::ChildLinks)
+		->OnUnion<FNFTAssetLink>()
+			->OnArray(&FNFTAssetLink::ChildLinks)
 				->AddField(&FLink::Path)
 				->OnMember(&FLink::Asset)
 					->AddField(&FAsset::CollectionId)
@@ -120,7 +120,7 @@ bool AssetsQueryGenerationTest::RunTest(const FString& Parameters)
 			FJsonSerializer::Serialize(MetadataJsonObject.ToSharedRef(), Writer);
 			UE_LOG(LogTemp, Log, TEXT("Parsed Metadata: %s"), *MetadataJson);
 
-			if (const auto Ownership = Cast<UNFTAssetOwnership>(Asset.OwnershipWrapper.Ownership))
+			if (const auto Ownership = Cast<UNFTAssetOwnershipObject>(Asset.OwnershipWrapper.Ownership))
 			{
 				UE_LOG(LogTemp, Log, TEXT("Owner Address: %s"), *Ownership->Data.Owner.Address);
 				TestEqual("Owner Address should match", Ownership->Data.Owner.Address,
@@ -131,7 +131,7 @@ bool AssetsQueryGenerationTest::RunTest(const FString& Parameters)
 				UE_LOG(LogTemp, Warning, TEXT("Failed to get UNFTAssetOwnership from Asset: %s:%s"), *Asset.CollectionId, *Asset.TokenId);
 			}
 
-			if (auto Links = Cast<UNFTAssetLink>(Asset.LinkWrapper.Links))
+			if (auto Links = Cast<UNFTAssetLinkObject>(Asset.LinkWrapper.Links))
 			{
 				for (auto ChildLink : Links->Data.ChildLinks)
 				{

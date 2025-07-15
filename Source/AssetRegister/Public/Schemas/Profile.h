@@ -9,21 +9,21 @@ struct ASSETREGISTER_API FProfile
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "additionalProperties"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<FString, FString> AdditionalProperties;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "avatar"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAvatar Avatar;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "displayName"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString DisplayName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "owner"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Owner;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "profileId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString ProfileId;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "profileProperties"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FProfileProperties ProfileProperties;
 };

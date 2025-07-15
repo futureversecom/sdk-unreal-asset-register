@@ -7,9 +7,9 @@ struct ASSETREGISTER_API FAvatar
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "asset"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FAsset Asset;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "customImage"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString CustomImage;
 };

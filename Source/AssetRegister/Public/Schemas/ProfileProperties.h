@@ -7,6 +7,6 @@ struct ASSETREGISTER_API FProfileProperties
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "description"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Description;
 };

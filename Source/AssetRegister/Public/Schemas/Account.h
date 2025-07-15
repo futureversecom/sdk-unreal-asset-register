@@ -8,30 +8,30 @@ struct ASSETREGISTER_API FAccount
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "additionalProperties"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<FString, FString> AdditionalProperties;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "address"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Address;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "eoa"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Eoa;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "futurepass"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Futurepass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "handle"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Handle;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "id"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Id;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "lastUsedProfileByExperience"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString LastUsedProfileByExperience;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "profiles"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FProfile> Profiles;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "rns"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Rns;
 };

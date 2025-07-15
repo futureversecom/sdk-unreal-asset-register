@@ -10,9 +10,9 @@ struct ASSETREGISTER_API FAssetInput
 	FAssetInput(const FString& TokenId, const FString& CollectionId)
 		: TokenId(TokenId), CollectionId(CollectionId){}
 		
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "tokenId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString TokenId;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(QueryName = "collectionId"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString CollectionId;
 };

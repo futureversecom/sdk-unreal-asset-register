@@ -491,7 +491,7 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::HandleAssetResponse(con
 
 	// manually try to get FNFTAssetOwnershipData
 	FNFTAssetOwnership NFTOwnershipData;
-	if (QueryStringUtil::TryGetModelField<FAsset>(ResponseJson, TEXT("ownership"), NFTOwnershipData))
+	if (QueryStringUtil::TryGetModelField(ResponseJson, TEXT("ownership"), NFTOwnershipData))
 	{
 		UNFTAssetOwnershipObject* NFTOwnership = NewObject<UNFTAssetOwnershipObject>();
 		NFTOwnership->Data = NFTOwnershipData;
@@ -501,7 +501,7 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::HandleAssetResponse(con
 	
 	// manually try to get FNFTAssetLinkData
 	FNFTAssetLink NFTAssetLinkData;
-	if (QueryStringUtil::TryGetModelField<FAsset>(ResponseJson, TEXT("links"), NFTAssetLinkData))
+	if (QueryStringUtil::TryGetModelField(ResponseJson, TEXT("links"), NFTAssetLinkData))
 	{
 		UNFTAssetLinkObject* NFTAssetLink = NewObject<UNFTAssetLinkObject>();
 		NFTAssetLink->Data = NFTAssetLinkData;

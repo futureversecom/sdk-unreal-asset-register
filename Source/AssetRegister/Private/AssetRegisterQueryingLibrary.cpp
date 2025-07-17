@@ -488,7 +488,21 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::HandleAssetResponse(con
 		Promise->SetValue(Result);
 		return Promise->GetFuture();
 	}
+	
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseJson);
+	TSharedPtr<FJsonObject> RootObject;
+	FJsonSerializer::Deserialize(Reader, RootObject);
 
+	const TSharedPtr<FJsonValue> MetadataObject = QueryStringUtil::FindFieldRecursively(RootObject, TEXT("metadata"));
+	if (MetadataObject)
+	{
+		const TSharedPtr<FJsonValue> MetadataProperties = QueryStringUtil::FindFieldRecursively(MetadataObject->AsObject(), TEXT("properties"));
+		if (MetadataProperties)
+		{
+			OutAsset.Metadata.Properties.JsonObject = MetadataProperties->AsObject();
+		}
+	}
+	
 	// manually try to get FNFTAssetOwnershipData
 	FNFTAssetOwnership NFTOwnershipData;
 	if (QueryStringUtil::TryGetModelField(ResponseJson, TEXT("ownership"), NFTOwnershipData))

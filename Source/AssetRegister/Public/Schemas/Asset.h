@@ -51,7 +51,7 @@ struct ASSETREGISTER_API FAssetMetadata
 	FString Uri;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TMap<FString, FString> Properties;
+	FJsonObjectWrapper Properties;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<FString, FString> Attributes;

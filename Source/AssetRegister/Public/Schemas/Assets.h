@@ -11,10 +11,10 @@ struct ASSETREGISTER_API FPageInfo
 	FString EndCursor;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool HasNextPage;
+	bool HasNextPage = false;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool HasPreviousPage;
+	bool HasPreviousPage = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString NextPage;

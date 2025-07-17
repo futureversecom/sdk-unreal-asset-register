@@ -1,6 +1,6 @@
 #pragma once
 #include "Schemas/AssetFilter.h"
-#include "Schemas/FSort.h"
+#include "Schemas/Sort.h"
 #include "AssetConnection.generated.h"
 
 USTRUCT(BlueprintType)

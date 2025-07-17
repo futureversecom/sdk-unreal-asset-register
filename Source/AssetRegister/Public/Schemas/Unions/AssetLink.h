@@ -19,6 +19,6 @@ struct ASSETREGISTER_API FAssetLinkWrapper
 	GENERATED_BODY()                                                                          
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)                                        
-	UAssetLinkObject* Links;                                                        
+	UAssetLinkObject* Links = nullptr;                                                        
 };  
 

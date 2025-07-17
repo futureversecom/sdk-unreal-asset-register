@@ -1,7 +1,7 @@
 #pragma once
 #include "Enums/SortOrder.h"
 
-#include "FSort.generated.h"
+#include "Sort.generated.h"
 
 USTRUCT(BlueprintType)
 struct ASSETREGISTER_API FSort
@@ -12,5 +12,5 @@ struct ASSETREGISTER_API FSort
 	FString Name;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	ESortOrder Order;
+	ESortOrder Order = ESortOrder::ASC;
 };

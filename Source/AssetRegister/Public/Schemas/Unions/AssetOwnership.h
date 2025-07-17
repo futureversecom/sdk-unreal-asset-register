@@ -23,5 +23,5 @@ struct ASSETREGISTER_API FAssetOwnershipWrapper
 	GENERATED_BODY()                                                                          
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)                                        
-	UAssetOwnershipObject* Ownership ;                                                        
+	UAssetOwnershipObject* Ownership = nullptr;                                                        
 }; 

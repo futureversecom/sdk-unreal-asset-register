@@ -20,5 +20,5 @@ struct ASSETREGISTER_API FSchema
 	FString Schema;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Version;
+	int32 Version = 0;
 };

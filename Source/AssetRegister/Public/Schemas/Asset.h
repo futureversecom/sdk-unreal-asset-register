@@ -66,7 +66,7 @@ struct ASSETREGISTER_API FAsset
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EAssetType AssetType;
+	EAssetType AssetType = EAssetType::ERC721;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FCollection Collection;

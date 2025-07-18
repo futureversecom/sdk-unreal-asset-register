@@ -1,4 +1,4 @@
-# Unreal Asset Register SDK
+# Unreal Engine Asset Register SDK
 
 **An Asset Register client plugin for Unreal Engine, by [Futureverse](https://www.futureverse.com)**
 

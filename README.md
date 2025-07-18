@@ -1,9 +1,12 @@
-# Asset Register SDK
-This Unreal Engine plugin provides an API for creating and sending GraphQL requests to the **Asset Register (AR)** server.
+# Unreal Asset Register SDK
 
->**Tip**
->
->See https://ar-docs.futureverse.app/ for details on the Asset Register.
+**An Asset Register client plugin for Unreal Engine, by [Futureverse](https://www.futureverse.com)**
+
+The **Asset Register SDK** is an Unreal Engine plugin for creating and sending GraphQL requests to the **Asset Register**. It provides a flexible interface for constructing queries, handling responses, and integrating with Futureverse asset data.
+
+> See https://ar-docs.futureverse.app/ for more specific details on the Asset Register.
+
+> For more on the broader Futureverse developer ecosystem, visit the [Futureverse Documentation Hub](https://docs.futureverse.com).
 
 ---
 
@@ -18,7 +21,7 @@ This Unreal Engine plugin provides an API for creating and sending GraphQL reque
 ## 🔧 Getting Started
 Add the `AssetRegisterPlugin` to your project's plugins folder and enable it in the Plugins tab in Unreal Engine.
 
-To set the target Asset Registry end point, head to your Project Settings and navigate to your `Plugins/Futureverse Asset Register`.
+To set the target Asset Registry endpoint, head to your Project Settings and navigate to your `Plugins/Futureverse Asset Register`.
 
 Select the URL you want to target:
 - Production -- `https://ar-api.futureverse.app/graphql`
@@ -108,7 +111,7 @@ Note: `FAssetLinkWrapper` contains the actual UObject with data.
 	- Each query requires a different input. E.g. Asset query requires `FAssetInput` whereas Assets query requires `FAssetConnection`
 3. Populate your input
 4. Populate your query with fields
-	- Use `AddField` to add field from your initial Schema Object e.g. `AssetNode->AddField(&FAsset::TokenId)`
+	- Use `AddField` to add fields from your initial Schema Object e.g. `AssetNode->AddField(&FAsset::TokenId)`
 	- Use `OnMember` to add the member field of the Schema Object, then use `AddField` after to add its fields e.g. `AssetNode->OnMember(&FAsset::Metadata)->AddField(&FAssetMetadata::Properties)`
 	- Use `OnUnion` to specify the polymorphic member field of the Schema Object e.g. `AssetNode->OnMember(&FAsset::Links)->OnUnion<FNFTAssetLinkData>()`
 	- Use `OnArray` to add the member field of array type of the Schema Object e.g. `AssetQuery->OnMember(&FAsset::Links)->OnUnion<FNFTAssetLinkData>()->OnArray(&FNFTAssetLinkData::ChildLinks)`
@@ -191,3 +194,9 @@ MakeAssetQuery(AssetsQuery->GetQueryJsonString()).Next([](const FLoadAssetsResul
 	}
 });
 ```
+
+---
+
+## 📄 License
+
+This SDK is released under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).

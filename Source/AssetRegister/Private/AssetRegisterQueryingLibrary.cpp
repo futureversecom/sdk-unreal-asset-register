@@ -95,7 +95,7 @@ void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const 
 	{
 		if (!Result.bSuccess)
 		{
-			UE_LOG(LogAssetRegister, Warning, TEXT("[UGetAssetProfile] failed to load remote AssetProfile for %s:%s"), *CollectionId, *TokenId);
+			UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::GetAssetLinks failed to load get links for %s:%s"), *CollectionId, *TokenId);
 			OnCompleted.ExecuteIfBound(false, FAsset());
 			return;
 		}
@@ -104,12 +104,12 @@ void UAssetRegisterQueryingLibrary::GetAssetLinks(const FString& TokenId, const 
 		auto Links = Cast<UNFTAssetLinkObject>(OutAsset.LinkWrapper.Links);
 		if (!Links)
 		{
-			UE_LOG(LogAssetRegister, Error, TEXT("[GetAssetLinks] Failed to get NFTAssetLink Data!"));
+			UE_LOG(LogAssetRegister, Error, TEXT("UAssetRegisterQueryingLibrary::GetAssetLinks Failed to get NFTAssetLink Data!"));
 			OnCompleted.ExecuteIfBound(false, OutAsset);
 			return;
 		}
 		
-		OnCompleted.ExecuteIfBound(true, OutAsset);
+		OnCompleted.ExecuteIfBound(!Links->Data.ChildLinks.IsEmpty(), OutAsset);
 	});
 }
 
@@ -134,7 +134,7 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::GetAssetLinks(const FSt
 		auto OutResult = FLoadAssetResult();
 		if (!Result.bSuccess)
 		{
-			UE_LOG(LogAssetRegister, Warning, TEXT("[UGetAssetProfile] failed to load remote AssetProfile for %s:%s"), *CollectionId, *TokenId);
+			UE_LOG(LogAssetRegister, Warning, TEXT("UAssetRegisterQueryingLibrary::GetAssetLinks failed to load get links for %s:%s"), *CollectionId, *TokenId);
 			OutResult.SetFailure();
 			Promise->SetValue(OutResult);
 			return;
@@ -144,7 +144,7 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::GetAssetLinks(const FSt
 		auto Links = Cast<UNFTAssetLinkObject>(OutAsset.LinkWrapper.Links);
 		if (!Links)
 		{
-			UE_LOG(LogAssetRegister, Error, TEXT("[GetAssetLinks] Failed to get NFTAssetLink Data!"));
+			UE_LOG(LogAssetRegister, Error, TEXT("UAssetRegisterQueryingLibrary::GetAssetLinks Failed to get NFTAssetLink Data!"));
 			OutResult.SetFailure();
 			Promise->SetValue(OutResult);
 			return;

@@ -14,15 +14,14 @@
 #include "Schemas/Inputs/AssetInput.h"
 #include "Schemas/Unions/NFTAssetOwnership.h"
 
-void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, const FString& CollectionId,
+void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, const FString& CollectionId, const FString& ProfileKey,
 	const FGetJsonCompleted& OnCompleted)
 {
 	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
+	FString AssetProfileKey = ProfileKey.IsEmpty() ? TEXT("default") : ProfileKey;
+	AssetQuery->OnMember<FAsset>(&FAsset::Profiles)->AddArgument(TEXT("key"), AssetProfileKey);
 
-	AssetQuery->AddField(&FAsset::Id)
-		->AddField<FAsset>(&FAsset::Profiles);
-
-	MakeAssetQuery(AssetQuery->GetQueryJsonString()).Next([OnCompleted, TokenId, CollectionId]
+	MakeAssetQuery(AssetQuery->GetQueryJsonString()).Next([OnCompleted, TokenId, CollectionId, AssetProfileKey]
 		(const FLoadAssetResult& Result)
 	{
 		FAsset Asset = Result.Value;
@@ -31,23 +30,22 @@ void UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId, cons
 		{
 			UE_LOG(LogAssetRegister, Warning, TEXT("[UGetAssetProfile] failed to load remote AssetProfile for %s:%s"), *CollectionId, *TokenId);
 		}
-
-		const FString AssetProfileKey = TEXT("asset-profile");
+		
 		const FString AssetProfileURI = Asset.Profiles.Contains(AssetProfileKey) ? Asset.Profiles[AssetProfileKey] : TEXT("");
 		OnCompleted.ExecuteIfBound(Asset.Profiles.Contains(AssetProfileKey),AssetProfileURI);
 	});
 }
 
 TFuture<FLoadJsonResult> UAssetRegisterQueryingLibrary::GetAssetProfile(const FString& TokenId,
-	const FString& CollectionId)
+	const FString& CollectionId, const FString& ProfileKey)
 {
 	TSharedPtr<TPromise<FLoadJsonResult>> Promise = MakeShareable(new TPromise<FLoadJsonResult>());
 	
 	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
-
-	AssetQuery->AddField<FAsset>(&FAsset::Profiles);
+	FString AssetProfileKey = ProfileKey.IsEmpty() ? TEXT("default") : ProfileKey;
+	AssetQuery->OnMember<FAsset>(&FAsset::Profiles)->AddArgument(TEXT("key"), AssetProfileKey);
 	
-	MakeAssetQuery(AssetQuery->GetQueryJsonString()).Next([Promise, TokenId, CollectionId]
+	MakeAssetQuery(AssetQuery->GetQueryJsonString()).Next([Promise, TokenId, CollectionId, AssetProfileKey]
 	(const FLoadAssetResult& Result)
 	{
 		FAsset Asset = Result.Value;
@@ -62,13 +60,13 @@ TFuture<FLoadJsonResult> UAssetRegisterQueryingLibrary::GetAssetProfile(const FS
 			return;
 		}
 		
-		const FString AssetProfileKey = TEXT("asset-profile");
 		if (Asset.Profiles.Contains(AssetProfileKey))
 		{
 			OutResult.SetResult(Asset.Profiles[AssetProfileKey]);
 		}
 		else
 		{
+			UE_LOG(LogAssetRegister, Warning, TEXT("[UGetAssetProfile] failed to find AssetProfile for %s:%s with key: %s"), *CollectionId, *TokenId, *AssetProfileKey);
 			OutResult.SetFailure();
 		}
 
@@ -157,9 +155,10 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::GetAssetLinks(const FSt
 	return Future;
 }
 
-void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInput, const FGetAssetsCompleted& OnCompleted)
+void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInput, const FString& ProfileKey, const FGetAssetsCompleted& OnCompleted)
 {
-	const auto AssetsQuery = GetAssetsQueryNode(AssetsInput);
+	FString AssetProfileKey = ProfileKey.IsEmpty() ? TEXT("default") : ProfileKey;
+	const auto AssetsQuery = GetAssetsQueryNode(AssetsInput, AssetProfileKey);
 	
 	MakeAssetsQuery(AssetsQuery->GetQueryJsonString()).Next([OnCompleted]
 	(const FLoadAssetsResult& Result)
@@ -176,11 +175,11 @@ void UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInpu
 	});
 }
 
-TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInput)
+TFuture<FLoadAssetsResult> UAssetRegisterQueryingLibrary::GetAssets(const FAssetConnection& AssetsInput, const FString& ProfileKey)
 {
 	TSharedPtr<TPromise<FLoadAssetsResult>> Promise = MakeShared<TPromise<FLoadAssetsResult>>();
-	
-	const auto AssetsQuery = GetAssetsQueryNode(AssetsInput);
+	FString AssetProfileKey = ProfileKey.IsEmpty() ? TEXT("default") : ProfileKey;
+	const auto AssetsQuery = GetAssetsQueryNode(AssetsInput, AssetProfileKey);
 	
 	MakeAssetsQuery(AssetsQuery->GetQueryJsonString()).Next([Promise]
 	(const FLoadAssetsResult& Result)
@@ -542,15 +541,15 @@ TFuture<FLoadAssetResult> UAssetRegisterQueryingLibrary::HandleAssetResponse(con
 	return Promise->GetFuture();
 }
 
-TSharedPtr<FQueryNode<FAssets>> UAssetRegisterQueryingLibrary::GetAssetsQueryNode(const FAssetConnection& AssetsInput)
+TSharedPtr<FQueryNode<FAssets>> UAssetRegisterQueryingLibrary::GetAssetsQueryNode(const FAssetConnection& AssetsInput, const FString& ProfileKey)
 {
 	auto AssetsQuery = FAssetRegisterQueryBuilder::AddAssetsQuery(AssetsInput);
 	const auto AssetNode = AssetsQuery->OnArray(&FAssets::Edges)
 		->AddField(&FAssetEdge::Cursor)->OnMember(&FAssetEdge::Node);
 	AssetNode->AddField(&FAsset::TokenId)
 			->AddField(&FAsset::CollectionId)
-			->AddField(&FAsset::AssetType)
-			->AddField(&FAsset::Profiles);
+			->AddField(&FAsset::AssetType);
+	AssetNode->OnMember(&FAsset::Profiles)->AddArgument(TEXT("key"), ProfileKey);
 	
 	AssetNode->OnMember(&FAsset::Metadata)
 			->AddField(&FAssetMetadata::Properties)

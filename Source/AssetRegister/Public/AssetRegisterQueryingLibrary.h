@@ -72,15 +72,16 @@ public:
 	 *
 	 * @param TokenId The token ID of the asset.
 	 * @param CollectionId The ID of the asset's collection.
+	 * @param ProfileKey The key for the profile that you want to query. Leave it empty for default production profile
 	 * @param OnCompleted Callback invoked when the request finishes.
 	 */
 	UFUNCTION(BlueprintCallable, meta = (AutoCreateRefTerm = "OnCompleted"))
-	static void GetAssetProfile(const FString& TokenId, const FString& CollectionId, const FGetJsonCompleted& OnCompleted);
+	static void GetAssetProfile(const FString& TokenId, const FString& CollectionId, const FString& ProfileKey, const FGetJsonCompleted& OnCompleted);
 
 	/**
 	 * C++ version of GetAssetProfile that returns a future containing JSON result.
 	 */
-	static TFuture<FLoadJsonResult> GetAssetProfile(const FString& TokenId, const FString& CollectionId);
+	static TFuture<FLoadJsonResult> GetAssetProfile(const FString& TokenId, const FString& CollectionId, const FString& ProfileKey);
 
 	/**
 	 * Retrieves asset links associated with a specific asset.
@@ -101,15 +102,16 @@ public:
 	 * Retrieves a list of assets using a FAssetConnection input.
 	 *
 	 * @param AssetsInput The connection input used to filter, paginate, or search assets.
+	 * @param ProfileKey The key for the profile that you want to query. Leave it empty for default production profile
 	 * @param OnCompleted Callback invoked when the request finishes.
 	 */
 	UFUNCTION(BlueprintCallable, meta = (AutoCreateRefTerm = "OnCompleted"))
-	static void GetAssets(const FAssetConnection& AssetsInput, const FGetAssetsCompleted& OnCompleted);
+	static void GetAssets(const FAssetConnection& AssetsInput, const FString& ProfileKey, const FGetAssetsCompleted& OnCompleted);
 
 	/**
 	 * C++ version of GetAssets that returns a future with a list of assets.
 	 */
-	static TFuture<FLoadAssetsResult> GetAssets(const FAssetConnection& AssetsInput);
+	static TFuture<FLoadAssetsResult> GetAssets(const FAssetConnection& AssetsInput, const FString& ProfileKey);
 	
 	/**
 	* Makes the Assets query using the provided raw query string.
@@ -140,7 +142,7 @@ private:
 	*/
 	static TFuture<FLoadAssetResult> HandleAssetResponse(const FString& ResponseJson);
 	
-	static TSharedPtr<FQueryNode<FAssets>> GetAssetsQueryNode(const FAssetConnection& AssetsInput);
+	static TSharedPtr<FQueryNode<FAssets>> GetAssetsQueryNode(const FAssetConnection& AssetsInput, const FString& ProfileKey);
 	
 	template<typename T>
 	static TFuture<TArray<T>> WhenAll(TArray<TFuture<T>>& Futures)

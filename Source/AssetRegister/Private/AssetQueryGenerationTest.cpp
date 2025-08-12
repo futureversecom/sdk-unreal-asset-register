@@ -14,11 +14,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(AssetQueryGenerationTest,
 
 bool AssetQueryGenerationTest::RunTest(const FString& Parameters)
 {
-	const auto TokenId = TEXT("10");
-	const auto CollectionId = TEXT("7668:root:1124");
+	const FString TokenId = TEXT("105");
+	const FString CollectionId = TEXT("7668:root:17508");
+	const FString ProfileKey = TEXT("staging");
 	auto AssetQuery = FAssetRegisterQueryBuilder::AddAssetQuery(FAssetInput(TokenId, CollectionId));
-	
-	AssetQuery->AddField(&FAsset::AssetType)->AddField(&FAsset::Profiles);
+	AssetQuery->AddField(&FAsset::AssetType);
+	AssetQuery->OnMember(&FAsset::Profiles)->AddArgument(TEXT("key"), ProfileKey);
 	AssetQuery->OnMember(&FAsset::Metadata)
 		->AddField(&FAssetMetadata::RawAttributes)
 		->AddField(&FAssetMetadata::Properties);
@@ -36,9 +37,9 @@ bool AssetQueryGenerationTest::RunTest(const FString& Parameters)
 	
 	FString ExpectedQueryString = R"(
 	query {
-	  asset(tokenId:"10",collectionId:"7668:root:1124") {
+	  asset(tokenId:")" + TokenId  + R"(",collectionId:")" + CollectionId +  R"(") {
 	    assetType
-		profiles
+		profiles(key:")" + ProfileKey  + R"(")
 	    metadata {
 	     rawAttributes
 		 properties
@@ -71,16 +72,19 @@ bool AssetQueryGenerationTest::RunTest(const FString& Parameters)
 		QueryTestUtil::RemoveAllWhitespace(ExpectedQueryString));
 
 	bool bHttpRequestCompleted = false;
-	UAssetRegisterQueryingLibrary::MakeAssetQuery(AssetQuery->GetQueryJsonString()).Next([this, &bHttpRequestCompleted]
+	UAssetRegisterQueryingLibrary::MakeAssetQuery(AssetQuery->GetQueryJsonString()).Next([this, ProfileKey, &bHttpRequestCompleted]
 		(const FLoadAssetResult& Result)
 	{
 		TestTrue("Result should succeed", Result.bSuccess);
 		const FAsset Asset = Result.Value;
-
-		const FString AssetProfileKey =TEXT("asset-profile");
-		if (Asset.Profiles.Contains(AssetProfileKey))
+		
+		if (Asset.Profiles.Contains(ProfileKey))
 		{
-			UE_LOG(LogTemp, Log, TEXT("Parsed AssetProfile: %s"), *Asset.Profiles[AssetProfileKey]);
+			UE_LOG(LogTemp, Log, TEXT("Parsed AssetProfile: %s"), *Asset.Profiles[ProfileKey]);
+		}
+		else
+		{
+			AddError(FString::Printf(TEXT("Failed to get to AssetProfile using Key: %s!"), *ProfileKey));
 		}
 		
 		FString MetadataJson;

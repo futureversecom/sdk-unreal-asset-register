@@ -4,6 +4,18 @@
 
 namespace QueryStringUtil
 {
+	static TMap<FString, FString> NameOverrideMap = {
+		{ "MetaData", "Metadata" },
+	};
+
+	inline FString TryGetNameOverride(const FString& InName)
+	{
+		// this is for when the property has a name spelt same as engine reserved name
+		return NameOverrideMap.Contains(InName)
+			? NameOverrideMap[InName]
+			: InName;
+	}
+	
 	static FString QueryNameMetadata = TEXT("QueryName");
 
 	inline FString ConvertJsonToGraphQLFriendlyString(const FString& Json)
@@ -70,9 +82,9 @@ namespace QueryStringUtil
 
 		for (TFieldIterator<FProperty> It(Class); It; ++It)
 		{
-			if (It->GetOffset_ForUFunction() == Offset)
+			if (It->GetOffset_ReplaceWith_ContainerPtrToValuePtr() == Offset)
 			{
-				return ToQueryName(It->GetName(), TEXT(""));
+				return ToQueryName(TryGetNameOverride(It->GetAuthoredName()), TEXT(""));
 			}
 		}
 		return TEXT("<UnknownField>");
@@ -86,9 +98,9 @@ namespace QueryStringUtil
 
 		for (TFieldIterator<FProperty> It(Struct); It; ++It)
 		{
-			if (It->GetOffset_ForUFunction() == Offset)
+			if (It->GetOffset_ReplaceWith_ContainerPtrToValuePtr() == Offset)
 			{
-				return ToQueryName(It->GetName(), TEXT(""));
+				return ToQueryName(TryGetNameOverride(It->GetAuthoredName()), TEXT(""));
 			}
 		}
 		return TEXT("<UnknownField>");
@@ -100,7 +112,7 @@ namespace QueryStringUtil
 		const UStruct* Struct = TStruct::StaticStruct();
 		
 		FString StructName = Struct->GetFName().ToString();
-		return ToQueryName(StructName, TEXT("F"), bToCamelCase);
+		return ToQueryName(TryGetNameOverride(StructName), TEXT("F"), bToCamelCase);
 	}
 	
 	// UObject class pointer version
@@ -110,7 +122,7 @@ namespace QueryStringUtil
 		UClass* Class = TClass::StaticClass();
 
 		FString ClassName = Class->GetFName().ToString();
-		return ToQueryName(ClassName, TEXT("U"), bToCamelCase);
+		return ToQueryName(TryGetNameOverride(ClassName), TEXT("U"), bToCamelCase);
 	}
 
 	inline void FindAllFieldsRecursively(const TSharedPtr<FJsonObject>& JsonObject, const FString& TargetField, TArray<TSharedPtr<FJsonValue>>& OutValues)
